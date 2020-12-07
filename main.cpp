@@ -1,19 +1,31 @@
 #include <iostream>
 #include <boost/asio.hpp>
+#include <boost/thread/thread.hpp>
 #include <boost/bind/bind.hpp>
+
+// strand template is used for threading syncronization, it is useful in servers
 
 class printer
 {
 private:
-    boost::asio::steady_timer timer;
+    boost::asio::strand<boost::asio::io_context::executor_type> strand;
+    boost::asio::steady_timer timer1;
+    boost::asio::steady_timer timer2;
     int count;
 
 public:
     printer(boost::asio::io_context& io)
-        : timer(io, boost::asio::chrono::seconds(1)), count(0)
+        : strand(boost::asio::make_strand(io)),
+        timer1(io, boost::asio::chrono::seconds(1)),
+        timer2(io, boost::asio::chrono::seconds(1)),
+        count(0)
     {
-        // Do the task async, which is print
-        this->timer.async_wait(boost::bind(&printer::print, this));
+        // Bind the strand template class to the task execution
+        this->timer1.async_wait(boost::asio::bind_executor(this->strand,
+            boost::bind(&printer::print1, this)));
+        
+        this->timer2.async_wait(boost::asio::bind_executor(this->strand,
+            boost::bind(&printer::print2, this)));
     }
 
     ~printer()
@@ -22,28 +34,42 @@ public:
     }
 
 public:
-    void print()
+    void print1()
     {
-        if (this->count < 5)
+        if(this->count < 10)
         {
-            std::cout << this->count << std::endl;
+            std::cout << "Timer 1: " << this->count << std::endl;
             ++this->count;
 
-            // Add a some waiting time so that the counter doesnt fall out of sync
-            this->timer.expires_at(this->timer.expiry() + boost::asio::chrono::seconds(1));
-            // Check if the task is done executing, which is print or do it
-            this->timer.async_wait(boost::bind(&printer::print, this));
+            // Loop the task until completion
+            this->timer1.expires_at(this->timer1.expiry() + boost::asio::chrono::seconds(1));
+            this->timer1.async_wait(boost::asio::bind_executor(this->strand,
+                boost::bind(&printer::print1, this)));
+        }
+    }
+
+    void print2()
+    {
+        if(this->count < 10)
+        {
+            std::cout << "Timer 2: " << this->count << std::endl;
+            ++this->count;
+
+            this->timer2.expires_at(this->timer2.expiry() + boost::asio::chrono::seconds(1));
+            this->timer2.async_wait(boost::asio::bind_executor(this->strand,
+                boost::bind(&printer::print2, this)));
         }
     }
 };
 
 int main()
 {
-    // The context is the link to the operating systems I/O services.
     boost::asio::io_context io;
     printer p(io);
-    // io needs to have some work to do for it to work in a async manner
+    boost::thread t(boost::bind(&boost::asio::io_context::run, &io));
     io.run();
+    // To enable multithreading
+    t.join();
 
     return 0;
 }
