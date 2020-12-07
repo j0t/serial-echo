@@ -1,75 +1,44 @@
 #include <iostream>
+#include <boost/array.hpp>
 #include <boost/asio.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/bind/bind.hpp>
 
-// strand template is used for threading syncronization, it is useful in servers
+using boost::asio::ip::tcp;
 
-class printer
+int main(int argc, char* argv[])
 {
-private:
-    boost::asio::strand<boost::asio::io_context::executor_type> strand;
-    boost::asio::steady_timer timer1;
-    boost::asio::steady_timer timer2;
-    int count;
-
-public:
-    printer(boost::asio::io_context& io)
-        : strand(boost::asio::make_strand(io)),
-        timer1(io, boost::asio::chrono::seconds(1)),
-        timer2(io, boost::asio::chrono::seconds(1)),
-        count(0)
+    try
     {
-        // Bind the strand template class to the task execution
-        this->timer1.async_wait(boost::asio::bind_executor(this->strand,
-            boost::bind(&printer::print1, this)));
-        
-        this->timer2.async_wait(boost::asio::bind_executor(this->strand,
-            boost::bind(&printer::print2, this)));
-    }
-
-    ~printer()
-    {
-        std::cout << "Final count is " << this->count << std::endl;
-    }
-
-public:
-    void print1()
-    {
-        if(this->count < 10)
+        if (argc != 2)
         {
-            std::cout << "Timer 1: " << this->count << std::endl;
-            ++this->count;
+            std::cerr << "Usage: ./serial-echo <host> (ex. localhost)\n";
+            return 1;
+        }
 
-            // Loop the task until completion
-            this->timer1.expires_at(this->timer1.expiry() + boost::asio::chrono::seconds(1));
-            this->timer1.async_wait(boost::asio::bind_executor(this->strand,
-                boost::bind(&printer::print1, this)));
+        boost::asio::io_context io_context;
+        tcp::resolver resolver(io_context);
+        tcp::resolver::results_type endpoints = resolver.resolve(argv[1], "daytime");
+        tcp::socket socket(io_context);
+        boost::asio::connect(socket, endpoints);
+
+        // Infinite for loop
+        for (;;)
+        {
+            boost::array<char, 128> buf;
+            boost::system::error_code error;
+
+            size_t len = socket.read_some(boost::asio::buffer(buf), error);
+
+            if (error == boost::asio::error::eof)
+                break; // Connection closed cleanly by peer
+            else if (error)
+                throw boost::system::system_error(error); // Other error
+
+            std::cout.write(buf.data(), len);
         }
     }
-
-    void print2()
+    catch(const std::exception& e)
     {
-        if(this->count < 10)
-        {
-            std::cout << "Timer 2: " << this->count << std::endl;
-            ++this->count;
-
-            this->timer2.expires_at(this->timer2.expiry() + boost::asio::chrono::seconds(1));
-            this->timer2.async_wait(boost::asio::bind_executor(this->strand,
-                boost::bind(&printer::print2, this)));
-        }
+        std::cerr << e.what() << '\n';
     }
-};
-
-int main()
-{
-    boost::asio::io_context io;
-    printer p(io);
-    boost::thread t(boost::bind(&boost::asio::io_context::run, &io));
-    io.run();
-    // To enable multithreading
-    t.join();
-
-    return 0;
+    
 }

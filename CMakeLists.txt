@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 project(serial-echo VERSION 1.0)
 
-find_package (Boost COMPONENTS thread filesystem regex REQUIRED)
+find_package (Boost COMPONENTS thread REQUIRED)
 
 if (Boost_FOUND)
     message(STATUS "Boost is found!")
@@ -14,4 +14,4 @@ find_package(Threads REQUIRED)
 
 add_executable(${PROJECT_NAME} main.cpp)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads ${Boost_LIBRARIES} ${Boost_FILESYSTEM_LIBRARY})
+target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads ${Boost_LIBRARIES})
