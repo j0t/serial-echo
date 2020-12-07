@@ -1,38 +1,49 @@
 #include <iostream>
 #include <boost/asio.hpp>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 
-// Print the count of asyn tasks done, after a set amount of time.
-void print(const boost::system::error_code&, boost::asio::steady_timer* t, int* count)
+class printer
 {
-    if (*count < 5)
-    {
-        std::cout << *count << std::endl;
-        ++(*count); 
+private:
+    boost::asio::steady_timer timer;
+    int count;
 
-        // Wait to expire before ccontinue so that we are in sync
-        t->expires_at(t->expiry() + boost::asio::chrono::seconds(1));
-        // Do the asyn task
-        t->async_wait(boost::bind(print, boost::asio::placeholders::error, t, count));
+public:
+    printer(boost::asio::io_context& io)
+        : timer(io, boost::asio::chrono::seconds(1)), count(0)
+    {
+        // Do the task async, which is print
+        this->timer.async_wait(boost::bind(&printer::print, this));
     }
-}
+
+    ~printer()
+    {
+        std::cout << "Final count is " << this->count << std::endl;
+    }
+
+public:
+    void print()
+    {
+        if (this->count < 5)
+        {
+            std::cout << this->count << std::endl;
+            ++this->count;
+
+            // Add a some waiting time so that the counter doesnt fall out of sync
+            this->timer.expires_at(this->timer.expiry() + boost::asio::chrono::seconds(1));
+            // Check if the task is done executing, which is print or do it
+            this->timer.async_wait(boost::bind(&printer::print, this));
+        }
+    }
+};
 
 int main()
 {
-    // Create context
+    // The context is the link to the operating systems I/O services.
     boost::asio::io_context io;
-
-    int count = 0;
-    // Create a timer
-    boost::asio::steady_timer t(io, boost::asio::chrono::seconds(1));
-    
-    // Pass the funciton to do the task of printing at intervals 6 times
-    t.async_wait(boost::bind(print, boost::asio::placeholders::error, &t, &count));
-    
-    // Need to add this so taht the system know that we are waiting for aysn tasks to be done.
+    printer p(io);
+    // io needs to have some work to do for it to work in a async manner
     io.run();
-
-    std::cout << "Final count is " << count << std::endl;
 
     return 0;
 }
