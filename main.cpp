@@ -1,56 +1,48 @@
+#include <ctime>
 #include <iostream>
-#include <boost/array.hpp>
+#include <string>
 #include <boost/asio.hpp>
+
+// Serverside tcp app, which shows the daytime information on the socket
+// try - netcat 127.0.0.53 13
+// to see - Tue Dec  8 13:12:02 2020
 
 using boost::asio::ip::tcp;
 
-// Client side app, for recieving information from port
-
-int main(int argc, char* argv[])
+// The string to be put into the port
+std::string make_daytime_string()
 {
-  try
-  {
-    if (argc != 2)
+    std::time_t now = time(0);
+    return std::ctime(&now);
+}
+
+int main()
+{
+    try
     {
-      std::cerr << "Usage: client <host>" << std::endl;
-      return 1;
+        boost::asio::io_context io_context;
+        
+        // listen on port 13 with ip version 4
+        tcp::acceptor acceptor(io_context, tcp::endpoint(tcp::v4(), 13));
+
+        // Iterative server which is going to accept a single connection at a time
+        for (;;)
+        {   
+            // Connection to the client
+            tcp::socket socket(io_context);
+            acceptor.accept(socket);
+
+            // Client is accessing the service
+            std::string message = make_daytime_string();
+
+            boost::system::error_code ignored_error;
+            boost::asio::write(socket, boost::asio::buffer(message), ignored_error);
+        }
     }
-
-    std::cout << "The port: " << argv[1] << std::endl;
-
-    boost::asio::io_context io_context;
-
-    // Create the parameter as an tcp object
-    tcp::resolver resolver(io_context);
-    // Create the endpoints to which connection is established
-    tcp::resolver::results_type endpoints =
-      resolver.resolve(argv[1], "daytime");
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }
     
-    // Create a socket
-    tcp::socket socket(io_context);
-    // Connect to a socket
-    boost::asio::connect(socket, endpoints);
-
-    // To hold the data, which is recieved
-    for (;;)
-    {
-      boost::array<char, 128> buf;
-      boost::system::error_code error;
-
-      size_t len = socket.read_some(boost::asio::buffer(buf), error);
-
-      if (error == boost::asio::error::eof)
-        break; // Connection closed cleanly by peer.
-      else if (error)
-        throw boost::system::system_error(error); // Some other error.
-
-      std::cout.write(buf.data(), len);
-    }
-  }
-  catch (std::exception& e)
-  {
-    std::cerr << e.what() << std::endl;
-  }
-
-  return 0;
+    return 0;
 }
