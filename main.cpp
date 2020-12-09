@@ -5,8 +5,13 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/asio.hpp>
 
-
 // Sync sertial echo device app 
+
+struct SerialPortInformation
+{
+    std::string portName;
+    unsigned int baudRate;
+};
 
 class SerialConnection : public boost::enable_shared_from_this<SerialConnection>
 {
@@ -97,13 +102,6 @@ private:
         start_accept();
     }
 };
-
-struct SerialPortInformation
-{
-    std::string portName;
-    unsigned int baudRate;
-};
-
 
 int main()
 {
