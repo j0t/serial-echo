@@ -10,29 +10,30 @@
 struct SerialPortInformation
 {
     std::string portName;
-    unsigned int baudRate;
+    unsigned long baudRate;
 };
 
-class SerialConnection : public boost::enable_shared_from_this<SerialConnection>
+class SerialServer : public boost::enable_shared_from_this<SerialServer>
 {
 private:
+    boost::asio::io_context& io_context;
+    SerialPortInformation& portInformation;
+
     boost::asio::serial_port serialPort;
     std::string message;
 
 public:
-    typedef boost::shared_ptr<SerialConnection> pointer;
-
-    static pointer create(boost::asio::io_context& io_context, SerialPortInformation& portInformation)
+    SerialServer(boost::asio::io_context& io_context, SerialPortInformation& portInformation)
+        : io_context(io_context)
+        , portInformation(portInformation)
+        , serialPort(io_context, portInformation.portName)
     {
-        return pointer(new SerialConnection(io_context, portInformation));
+        setupPort(this->serialPort, this->portInformation.baudRate);
+        startActions();
     }
 
-    boost::asio::serial_port& getSerialPort()
-    {
-        return this->serialPort;
-    }
-
-    void start()
+public:
+    void startActions()
     {
         // Implement read here
 
@@ -41,12 +42,12 @@ public:
         std::cout << "Writing message: " << this->message << std::endl;
 
         boost::asio::async_write(this->serialPort, boost::asio::buffer(this->message),
-            boost::bind(&SerialConnection::handleWrite, shared_from_this(),
+            boost::bind(&SerialServer::handleWrite, shared_from_this(),
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
     }
 
-    void setupPort(boost::asio::serial_port& serialPort, unsigned int baudRate)
+    void setupPort(boost::asio::serial_port& serialPort, unsigned long baudRate)
     {
         serialPort.set_option(boost::asio::serial_port_base::baud_rate(baudRate));
         serialPort.set_option(boost::asio::serial_port_base::character_size(8));
@@ -55,51 +56,9 @@ public:
         serialPort.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
     }
 
-private:
-    SerialConnection(boost::asio::io_context& io_context, SerialPortInformation& portInformation)
-        : serialPort(io_context, portInformation.portName)
-    {
-        setupPort(serialPort, portInformation.baudRate);
-    }
-
     void handleWrite(const boost::system::error_code&, size_t)
     {
         ;
-    }
-};
-
-class SerialServer
-{
-private:
-    boost::asio::io_context& io_context;
-    SerialPortInformation& portInformation;
-
-public:
-    SerialServer(boost::asio::io_context& io_context, SerialPortInformation& portInformation)
-        : io_context(io_context)
-        , portInformation(portInformation)
-    {
-        start_accept();
-    }
-
-private:
-    void start_accept()
-    {           
-        SerialConnection::pointer newConnection = 
-            SerialConnection::create(this->io_context, portInformation);
-
-        
-    }
-
-    void handleAccept(SerialConnection::pointer newConnection, 
-        const boost::system::error_code& error)
-    {
-        if (!error)
-        {
-            newConnection->start();
-        }
-
-        start_accept();
     }
 };
 
