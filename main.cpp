@@ -1,12 +1,8 @@
 #include <iostream>
 #include <string>
 #include <boost/bind/bind.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/enable_shared_from_this.hpp>
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
-
-// Sync sertial echo device app 
 
 struct SerialPortInformation
 {
@@ -14,20 +10,20 @@ struct SerialPortInformation
     unsigned long baudRate;
 };
 
-class SerialServer : public boost::enable_shared_from_this<SerialServer>
+class SerialServer
 {
 private:
     boost::asio::io_context& io_context;
     SerialPortInformation& portInformation;
 
-    std::shared_ptr<boost::asio::serial_port> serialPort;
+    boost::asio::serial_port serialPort;
     std::string message;
 
 public:
     SerialServer(boost::asio::io_context& io_context, SerialPortInformation& portInformation)
         : io_context(io_context)
         , portInformation(portInformation)
-        , serialPort(std::make_shared<boost::asio::serial_port>(io_context, portInformation.portName))
+        , serialPort(io_context, portInformation.portName)
     {
         setupPort(this->serialPort, this->portInformation.baudRate);
         startActions();
@@ -42,19 +38,19 @@ public:
 
         std::cout << "Writing message: " << this->message << std::endl;
 
-        boost::asio::async_write(*this->serialPort.get(), boost::asio::buffer(this->message),
-            boost::bind(&SerialServer::handleWrite, shared_from_this(),
+        boost::asio::async_write(this->serialPort, boost::asio::buffer(this->message),
+            boost::bind(&SerialServer::handleWrite, this,
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
     }
 
-    void setupPort(std::shared_ptr<boost::asio::serial_port>& serialPort, unsigned long baudRate)
+    void setupPort(boost::asio::serial_port& serialPort, unsigned long baudRate)
     {
-        serialPort->set_option(boost::asio::serial_port_base::baud_rate(baudRate));
-        serialPort->set_option(boost::asio::serial_port_base::character_size(8));
-        serialPort->set_option(boost::asio::serial_port_base::flow_control(boost::asio::serial_port_base::flow_control::none));
-        serialPort->set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::none));
-        serialPort->set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
+        serialPort.set_option(boost::asio::serial_port_base::baud_rate(baudRate));
+        serialPort.set_option(boost::asio::serial_port_base::character_size(8));
+        serialPort.set_option(boost::asio::serial_port_base::flow_control(boost::asio::serial_port_base::flow_control::none));
+        serialPort.set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::none));
+        serialPort.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
     }
 
     void handleWrite(const boost::system::error_code&, size_t)
