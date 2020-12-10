@@ -4,6 +4,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/asio.hpp>
+#include <boost/program_options.hpp>
 
 // Sync sertial echo device app 
 
@@ -62,19 +63,48 @@ public:
     }
 };
 
-int main()
+int main(int argc, const char* argv[])
 {
     try
-    {
+    {  
         SerialPortInformation portInformation;
 
-        std::cout << "Enter serial port: ";
-        std::cin >> portInformation.portName;
+        boost::program_options::options_description description("Options");
+        description.add_options()
+            ("help", "show help message")
+            ("port", boost::program_options::value<std::string>(&portInformation.portName)->default_value("/dev/ttyS0"), "set serial port")
+            ("baud_rate", boost::program_options::value<unsigned long>(&portInformation.baudRate)->default_value(9600), "set baud rate")
+        ;
 
-        std::cout << "Enter baud rate: ";
-        std::cin >> portInformation.baudRate;
+        boost::program_options::variables_map variableMap;
+        boost::program_options::store(boost::program_options::parse_command_line(argc, argv, description), variableMap);
+        boost::program_options::notify(variableMap);
 
-        std::cout << "Opening port: " << portInformation.portName << std::endl;
+        if (variableMap.count("help"))
+        {
+            std::cout << description << "\n";
+            return 0;
+        }
+        
+        if (variableMap.count("port"))
+        {
+            std::cout << "Serial port device was set to " << variableMap["port"].as<std::string>() << "\n";
+        }
+        else
+        {
+            std::cout << "Serial port device was set to default\n";
+        }
+
+        if (variableMap.count("baud_rate"))
+        {
+            std::cout << "Serial port device baud rate was set to " << variableMap["baud_rate"].as<unsigned long>() << "\n";
+        }
+        else
+        {
+            std::cout << "Serial device baud rate was set to default\n";
+        }
+
+        std::cout << "Opening baud_rate: " << portInformation.portName << std::endl;
 
         boost::asio::io_context io_context;
         SerialServer serialPort(io_context, portInformation);

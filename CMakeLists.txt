@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.14)
 project(serial-echo VERSION 1.0)
 
-find_package (Boost COMPONENTS thread REQUIRED)
+find_package (Boost COMPONENTS thread program_options REQUIRED)
 
 if (Boost_FOUND)
     message(STATUS "Boost is found!")
