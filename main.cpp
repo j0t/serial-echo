@@ -20,14 +20,14 @@ private:
     boost::asio::io_context& io_context;
     SerialPortInformation& portInformation;
 
-    boost::asio::serial_port serialPort;
+    std::shared_ptr<boost::asio::serial_port> serialPort;
     std::string message;
 
 public:
     SerialServer(boost::asio::io_context& io_context, SerialPortInformation& portInformation)
         : io_context(io_context)
         , portInformation(portInformation)
-        , serialPort(io_context, portInformation.portName)
+        , serialPort(std::make_shared<boost::asio::serial_port>(io_context, portInformation.portName))
     {
         setupPort(this->serialPort, this->portInformation.baudRate);
         startActions();
@@ -42,19 +42,19 @@ public:
 
         std::cout << "Writing message: " << this->message << std::endl;
 
-        boost::asio::async_write(this->serialPort, boost::asio::buffer(this->message),
+        boost::asio::async_write(*this->serialPort.get(), boost::asio::buffer(this->message),
             boost::bind(&SerialServer::handleWrite, shared_from_this(),
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
     }
 
-    void setupPort(boost::asio::serial_port& serialPort, unsigned long baudRate)
+    void setupPort(std::shared_ptr<boost::asio::serial_port>& serialPort, unsigned long baudRate)
     {
-        serialPort.set_option(boost::asio::serial_port_base::baud_rate(baudRate));
-        serialPort.set_option(boost::asio::serial_port_base::character_size(8));
-        serialPort.set_option(boost::asio::serial_port_base::flow_control(boost::asio::serial_port_base::flow_control::none));
-        serialPort.set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::none));
-        serialPort.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
+        serialPort->set_option(boost::asio::serial_port_base::baud_rate(baudRate));
+        serialPort->set_option(boost::asio::serial_port_base::character_size(8));
+        serialPort->set_option(boost::asio::serial_port_base::flow_control(boost::asio::serial_port_base::flow_control::none));
+        serialPort->set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::none));
+        serialPort->set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
     }
 
     void handleWrite(const boost::system::error_code&, size_t)
@@ -65,20 +65,22 @@ public:
 
 int main(int argc, const char* argv[])
 {
+    using namespace boost::program_options;
+
     try
     {  
         SerialPortInformation portInformation;
 
-        boost::program_options::options_description description("Options");
+        options_description description("Options");
         description.add_options()
             ("help", "show help message")
-            ("port", boost::program_options::value<std::string>(&portInformation.portName)->default_value("/dev/ttyS0"), "set serial port")
-            ("baud_rate", boost::program_options::value<unsigned long>(&portInformation.baudRate)->default_value(9600), "set baud rate")
+            ("port", value<std::string>(&portInformation.portName)->default_value("/dev/ttyS0"), "set serial port")
+            ("baud_rate", value<unsigned long>(&portInformation.baudRate)->default_value(9600), "set baud rate")
         ;
 
-        boost::program_options::variables_map variableMap;
-        boost::program_options::store(boost::program_options::parse_command_line(argc, argv, description), variableMap);
-        boost::program_options::notify(variableMap);
+        variables_map variableMap;
+        store(parse_command_line(argc, argv, description), variableMap);
+        notify(variableMap);
 
         if (variableMap.count("help"))
         {
@@ -104,7 +106,7 @@ int main(int argc, const char* argv[])
             std::cout << "Serial device baud rate was set to default\n";
         }
 
-        std::cout << "Opening baud_rate: " << portInformation.portName << std::endl;
+        std::cout << "Opening port: " << portInformation.portName << std::endl;
 
         boost::asio::io_context io_context;
         SerialServer serialPort(io_context, portInformation);
