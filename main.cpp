@@ -32,11 +32,14 @@ public:
 public:
     void startActions()
     {
-        // Implement read here
+        std::cout << "Reading message\n";
 
-        this->message = "Testing connection!\n";
+        boost::asio::async_read(this->serialPort, boost::asio::buffer(this->message),
+            boost::bind(&SerialServer::handleWrite, this,
+            boost::asio::placeholders::error,
+            boost::asio::placeholders::bytes_transferred));
 
-        std::cout << "Writing message: " << this->message << std::endl;
+        std::cout << "Writing message\n";
 
         boost::asio::async_write(this->serialPort, boost::asio::buffer(this->message),
             boost::bind(&SerialServer::handleWrite, this,
@@ -63,39 +66,43 @@ int main(int argc, const char* argv[])
 {
     using namespace boost::program_options;
 
+    const char* HELP = "help";
+    const char* PORT = "port";
+    const char* BAUD_RATE = "baud_rate";
+
     try
     {  
         SerialPortInformation portInformation;
 
         options_description description("Options");
         description.add_options()
-            ("help", "show help message")
-            ("port", value<std::string>(&portInformation.portName)->default_value("/dev/ttyS0"), "set serial port")
-            ("baud_rate", value<unsigned long>(&portInformation.baudRate)->default_value(9600), "set baud rate")
+            (HELP, "show help message")
+            (PORT, value<std::string>(&portInformation.portName)->default_value("/dev/ttyS0"), "set serial port")
+            (BAUD_RATE, value<unsigned long>(&portInformation.baudRate)->default_value(9600), "set baud rate")
         ;
 
         variables_map variableMap;
         store(parse_command_line(argc, argv, description), variableMap);
         notify(variableMap);
 
-        if (variableMap.count("help"))
+        if (variableMap.count(HELP))
         {
             std::cout << description << "\n";
             return 0;
         }
         
-        if (variableMap.count("port"))
+        if (variableMap.count(PORT))
         {
-            std::cout << "Serial port device was set to " << variableMap["port"].as<std::string>() << "\n";
+            std::cout << "Serial port device was set to " << variableMap[PORT].as<std::string>() << "\n";
         }
         else
         {
             std::cout << "Serial port device was set to default\n";
         }
 
-        if (variableMap.count("baud_rate"))
+        if (variableMap.count(BAUD_RATE))
         {
-            std::cout << "Serial port device baud rate was set to " << variableMap["baud_rate"].as<unsigned long>() << "\n";
+            std::cout << "Serial port device baud rate was set to " << variableMap[BAUD_RATE].as<unsigned long>() << "\n";
         }
         else
         {
