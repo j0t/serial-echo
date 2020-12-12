@@ -26,6 +26,7 @@ public:
         , serialPort(io_context, portInformation.portName)
     {
         setupPort(this->serialPort, this->portInformation.baudRate);
+        std::cout << "Port information: " << serialPort.native_handle() << std::endl;
         startActions();
     }
 
@@ -38,6 +39,8 @@ public:
             boost::bind(&SerialServer::handleWrite, this,
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
+
+        std::cout << "Read message: " << this->message << std::endl;
 
         std::cout << "Writing message\n";
 
@@ -56,9 +59,10 @@ public:
         serialPort.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
     }
 
-    void handleWrite(const boost::system::error_code&, size_t)
+    void handleWrite(const boost::system::error_code& error, size_t length)
     {
-        ;
+        std::cout << "Error: " << error << "\n";
+        std::cout << "Error lenght: " << length << "\n";
     }
 };
 
