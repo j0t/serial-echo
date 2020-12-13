@@ -26,23 +26,16 @@ public:
         , serialPort(io_context, portInformation.portName)
     {
         setupPort(this->serialPort, this->portInformation.baudRate);
-        std::cout << "Port information: " << serialPort.native_handle() << std::endl;
         startActions();
     }
 
 public:
     void startActions()
     {
-        std::cout << "Reading message\n";
-
         boost::asio::async_read(this->serialPort, boost::asio::buffer(this->message),
-            boost::bind(&SerialServer::handleWrite, this,
+            boost::bind(&SerialServer::handleRead, this,
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
-
-        std::cout << "Read message: " << this->message << std::endl;
-
-        std::cout << "Writing message\n";
 
         boost::asio::async_write(this->serialPort, boost::asio::buffer(this->message),
             boost::bind(&SerialServer::handleWrite, this,
@@ -59,10 +52,23 @@ public:
         serialPort.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
     }
 
+    void handleRead(const boost::system::error_code& error, size_t length)
+    {
+        if (!error)
+        {
+            this->message.resize(length);
+            std::cout << "Read message: " << this->message.data() << "\n";
+        }
+        else
+            std::cout << "Handle read! | " << "Error: " << error << " | Error lenght: " << length << "\n";
+    }
+
     void handleWrite(const boost::system::error_code& error, size_t length)
     {
-        std::cout << "Error: " << error << "\n";
-        std::cout << "Error lenght: " << length << "\n";
+        if (!error)
+            std::cout << "Writing message: " << this->message.data() << "\n";
+        else        
+            std::cout << "Handle write! | " << "Error: " << error << " | Error lenght: " << length << "\n";
     }
 };
 
