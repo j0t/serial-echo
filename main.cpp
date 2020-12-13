@@ -37,7 +37,7 @@ public:
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
 
-        if (!this->dataBuffer.empty())
+        if (this->dataBuffer.size() >= 12)
         {
             boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, 12),
                 boost::bind(&SerialServer::handleWrite, this,
