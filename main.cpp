@@ -32,15 +32,18 @@ public:
 public:
     void startActions()
     {
-        boost::asio::async_read(this->serialPort, boost::asio::buffer(this->dataBuffer),
+        boost::asio::async_read(this->serialPort, boost::asio::buffer(this->dataBuffer, 12),
             boost::bind(&SerialServer::handleRead, this,
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
 
-        boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer),
-            boost::bind(&SerialServer::handleWrite, this,
-            boost::asio::placeholders::error,
-            boost::asio::placeholders::bytes_transferred));
+        if (!this->dataBuffer.empty())
+        {
+            boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, 12),
+                boost::bind(&SerialServer::handleWrite, this,
+                boost::asio::placeholders::error,
+                boost::asio::placeholders::bytes_transferred));
+        }
     }
 
     void setupPort(boost::asio::serial_port& serialPort, unsigned long baudRate)
@@ -55,7 +58,7 @@ public:
     void handleRead(const boost::system::error_code& error, size_t length)
     {
         if (!error)
-            std::cout << "Read message: " << this->dataBuffer.data() << " | Recieved length: " << length << "\n";
+            std::cout << "Read message: " << this->dataBuffer.data() + '\0' << " | Recieved length: " << length << "\n";
         else
             std::cout << "Handle read! | " << "Error: " << error << " | Error length: " << length << "\n";
     }
@@ -63,7 +66,7 @@ public:
     void handleWrite(const boost::system::error_code& error, size_t length)
     {
         if (!error)
-            std::cout << "Writing message: " << this->dataBuffer.data() << " | Recieved length: " << length << "\n";
+            std::cout << "Writing message: " << this->dataBuffer.data() + '\0' << " | Recieved length: " << length << "\n";
         else        
             std::cout << "Handle write! | " << "Error: " << error << " | Error length: " << length << "\n";
     }
