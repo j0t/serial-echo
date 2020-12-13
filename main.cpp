@@ -17,7 +17,6 @@ private:
     SerialPortInformation& portInformation;
 
     boost::asio::serial_port serialPort;
-    //std::string message;
     boost::array<char, 12> dataBuffer;
 
 public:
@@ -56,17 +55,17 @@ public:
     void handleRead(const boost::system::error_code& error, size_t length)
     {
         if (!error)
-            std::cout << "Read message: " << this->dataBuffer.data() << "\n";
+            std::cout << "Read message: " << this->dataBuffer.data() << " | Recieved length: " << length << "\n";
         else
-            std::cout << "Handle read! | " << "Error: " << error << " | Error lenght: " << length << "\n";
+            std::cout << "Handle read! | " << "Error: " << error << " | Error length: " << length << "\n";
     }
 
     void handleWrite(const boost::system::error_code& error, size_t length)
     {
         if (!error)
-            std::cout << "Writing message: " << this->dataBuffer.data() << "\n";
+            std::cout << "Writing message: " << this->dataBuffer.data() << " | Recieved length: " << length << "\n";
         else        
-            std::cout << "Handle write! | " << "Error: " << error << " | Error lenght: " << length << "\n";
+            std::cout << "Handle write! | " << "Error: " << error << " | Error length: " << length << "\n";
     }
 };
 
