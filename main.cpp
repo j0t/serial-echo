@@ -39,7 +39,11 @@ public:
 
         if (!this->dataBuffer.empty())
         {
+<<<<<<< HEAD
             boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, 12),
+=======
+            boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer),
+>>>>>>> 0c6b747884a7f8fd8eecc8d3172266480779fa91
                 boost::bind(&SerialServer::handleWrite, this,
                 boost::asio::placeholders::error,
                 boost::asio::placeholders::bytes_transferred));
