@@ -32,12 +32,12 @@ public:
 public:
     void startActions()
     {
-        boost::asio::async_read(this->serialPort, boost::asio::buffer(this->message),
+        boost::asio::async_read(this->serialPort, boost::asio::buffer(&this->message[0], this->message.size()),
             boost::bind(&SerialServer::handleRead, this,
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
 
-        boost::asio::async_write(this->serialPort, boost::asio::buffer(this->message),
+        boost::asio::async_write(this->serialPort, boost::asio::buffer(&this->message[0], this->message.size()),
             boost::bind(&SerialServer::handleWrite, this,
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
