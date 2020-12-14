@@ -57,8 +57,8 @@ public:
     void handleRead(const boost::system::error_code& error, size_t length)
     {
         if (!error)
-        {   
-            std::cout << "Read message: " << std::hex;
+        {
+            std::cout << "Read message: ";
             std::cout.write(this->dataBuffer.data(), length);
             std::cout << " | Recieved length: " << length << "\n";
         }
@@ -69,10 +69,8 @@ public:
     void handleWrite(const boost::system::error_code& error, size_t length)
     {
         if (!error)
-        {   
-            std::cout << "Write message: " << std::hex;
-            std::cout.write(this->dataBuffer.data(), length);
-            std::cout << " | Recieved length: " << length << "\n";
+        {
+            std::cout << "Write message: " << std::hex << this->dataBuffer.data() << std::dec << " | Recieved length: " << length << "\n";
         }
         else        
             std::cout << "Handle write! | " << "Error: " << error << " | Data length: " << length << "\n";
