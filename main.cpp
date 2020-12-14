@@ -83,24 +83,15 @@ public:
     {
         if (!error)
         {
-            std::cout << "Write message in printable chars: ";
+            std::cout << "Write message: ";
             for (size_t i = 0; i < length; i++)
             {
-                printf("%d", isprint(this->dataBuffer[i]));
-            }
-            
-            std::cout << "\nWrite message in ASCII: ";
-            for (size_t i = 0; i < length; i++)
-            {
-                printf("%s", this->dataBuffer[i]);
+                if(!isprint(this->dataBuffer[i]))
+                    std::cout << this->dataBuffer[i];
+                else
+                    std::cout << std::hex << std::uppercase << this->dataBuffer[i];            
             }
 
-            std::cout << "\nWrite message in hex: ";
-            for (size_t i = 0; i < length; i++)
-            {
-               std::cout << std::hex << std::uppercase << this->dataBuffer[i];            
-            }
-            
             std::cout << "\n";
         }
         else
