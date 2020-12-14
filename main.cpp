@@ -4,10 +4,13 @@
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 
+static const unsigned int BUFFER_SIZE = 12;
+
 struct SerialPortInformation
 {
     std::string portName;
     unsigned long baudRate;
+    unsigned int debugLevel;
 };
 
 class SerialServer
@@ -17,7 +20,7 @@ private:
     SerialPortInformation& portInformation;
 
     boost::asio::serial_port serialPort;
-    std::string message;
+    boost::array<char, BUFFER_SIZE> dataBuffer;
 
 public:
     SerialServer(boost::asio::io_context& io_context, SerialPortInformation& portInformation)
@@ -26,22 +29,21 @@ public:
         , serialPort(io_context, portInformation.portName)
     {
         setupPort(this->serialPort, this->portInformation.baudRate);
-        startActions();
+        startRead();
     }
 
 public:
-    void startActions()
+    void startRead()
     {
-        std::cout << "Reading message\n";
-
-        boost::asio::async_read(this->serialPort, boost::asio::buffer(this->message),
-            boost::bind(&SerialServer::handleWrite, this,
+        boost::asio::async_read(this->serialPort, boost::asio::buffer(this->dataBuffer, BUFFER_SIZE),
+            boost::bind(&SerialServer::handleRead, this,
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
+    }
 
-        std::cout << "Writing message\n";
-
-        boost::asio::async_write(this->serialPort, boost::asio::buffer(this->message),
+    void startWrite()
+    {
+        boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, BUFFER_SIZE),
             boost::bind(&SerialServer::handleWrite, this,
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
@@ -56,9 +58,37 @@ public:
         serialPort.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
     }
 
-    void handleWrite(const boost::system::error_code&, size_t)
+    void handleRead(const boost::system::error_code& error, size_t length)
     {
-        ;
+        if (this->portInformation.debugLevel == 1)
+            printInformation("Read", error, length);
+
+        startWrite();
+    }
+
+    void handleWrite(const boost::system::error_code& error, size_t length)
+    {
+        if (this->portInformation.debugLevel == 1)
+            printInformation("Write", error, length);
+    }
+
+    void printInformation(const char* messageType, const boost::system::error_code& error, size_t length)
+    {
+        if (!error)
+        {
+            std::cout << messageType << " message: ";
+            for (size_t i = 0; i < length; i++)
+            {
+                if(!isprint(this->dataBuffer[i]))
+                    std::cout << this->dataBuffer[i];
+                else
+                    std::cout << std::hex << std::uppercase << this->dataBuffer[i] << std::dec;            
+            }
+
+            std::cout << "\n";
+        }
+        else
+            std::cerr << "Handle " << messageType << "! | " << "Error: " << error << " | Data length: " << length << "\n";
     }
 };
 
@@ -69,6 +99,7 @@ int main(int argc, const char* argv[])
     const char* HELP = "help";
     const char* PORT = "port";
     const char* BAUD_RATE = "baud_rate";
+    const char* DEBUG_LEVEL = "debug_level";
 
     try
     {  
@@ -79,6 +110,7 @@ int main(int argc, const char* argv[])
             (HELP, "show help message")
             (PORT, value<std::string>(&portInformation.portName)->default_value("/dev/ttyS0"), "set serial port")
             (BAUD_RATE, value<unsigned long>(&portInformation.baudRate)->default_value(9600), "set baud rate")
+            (DEBUG_LEVEL, value<unsigned int>(&portInformation.debugLevel)->default_value(0), "set debug level (0 - none, 1 - full)")
         ;
 
         variables_map variableMap;
@@ -107,6 +139,15 @@ int main(int argc, const char* argv[])
         else
         {
             std::cout << "Serial device baud rate was set to default\n";
+        }
+
+        if (variableMap.count(DEBUG_LEVEL))
+        {
+            std::cout << "Debug level was set to " << variableMap[DEBUG_LEVEL].as<unsigned int>() << "\n";
+        }
+        else
+        {
+            std::cout << "Debug level was set to default\n";
         }
 
         std::cout << "Opening port: " << portInformation.portName << std::endl;
