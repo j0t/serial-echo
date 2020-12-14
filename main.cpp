@@ -34,19 +34,16 @@ public:
 public:
     void startActions()
     {
-        boost::asio::async_read(this->serialPort, boost::asio::buffer(this->dataBuffer, BUFFER_SIZE - 1),
+        boost::asio::async_read(this->serialPort, boost::asio::buffer(this->dataBuffer, BUFFER_SIZE),
             boost::bind(&SerialServer::handleRead, this,
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
 
-        if (this->dataBuffer[BUFFER_SIZE - 1] == '\0')
-        {
-            boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, BUFFER_SIZE),
-                boost::bind(&SerialServer::handleWrite, this,
-                boost::asio::placeholders::error,
-                boost::asio::placeholders::bytes_transferred));
-        }
-    }
+        boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, BUFFER_SIZE),
+            boost::bind(&SerialServer::handleWrite, this,
+            boost::asio::placeholders::error,
+            boost::asio::placeholders::bytes_transferred));
+}
 
     void setupPort(boost::asio::serial_port& serialPort, unsigned long baudRate)
     {
@@ -60,20 +57,25 @@ public:
     void handleRead(const boost::system::error_code& error, size_t length)
     {
         if (!error)
-        {
-            this->dataBuffer[length] = '\0';
-            std::cout << "Read message: " << this->dataBuffer.data() << " | Recieved length: " << length << "\n";
+        {   
+            std::cout << "Read message: " << std::hex;
+            std::cout.write(this->dataBuffer.data(), length);
+            std::cout << " | Recieved length: " << length << "\n";
         }
         else
-            std::cout << "Handle read! | " << "Error: " << error << " | Error length: " << length << "\n";
+            std::cout << "Handle read! | " << "Error: " << error << " | Data length: " << length << "\n";
     }
 
     void handleWrite(const boost::system::error_code& error, size_t length)
     {
         if (!error)
-            std::cout << "Writing message: " << this->dataBuffer.data() << " | Recieved length: " << length << "\n";
+        {   
+            std::cout << "Write message: " << std::hex;
+            std::cout.write(this->dataBuffer.data(), length);
+            std::cout << " | Recieved length: " << length << "\n";
+        }
         else        
-            std::cout << "Handle write! | " << "Error: " << error << " | Error length: " << length << "\n";
+            std::cout << "Handle write! | " << "Error: " << error << " | Data length: " << length << "\n";
     }
 };
 
