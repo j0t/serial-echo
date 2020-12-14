@@ -70,11 +70,13 @@ public:
     {
         if (this->portInformation.debugLevel == 1)
             printInformation("Write", error, length);
+
+        startRead();
     }
 
     void printInformation(const char* messageType, const boost::system::error_code& error, size_t length)
     {
-        if (!error)
+        if (!error || length > 12)
         {
             std::cout << messageType << " message: ";
             for (size_t i = 0; i < length; i++)
@@ -88,7 +90,7 @@ public:
             std::cout << "\n";
         }
         else
-            std::cerr << "Handle " << messageType << "! | " << "Error: " << error << " | Data length: " << length << "\n";
+            std::cerr << "Handle " << messageType << "! | " << "Error: " << error << " | Data length: " << length << " - Must be 12 bytes!" << "\n";
     }
 };
 
