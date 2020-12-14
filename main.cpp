@@ -30,9 +30,13 @@ public:
         , serialPort(io_context, portInformation.portName)
     {
         setupPort(this->serialPort, this->portInformation.baudRate);
-        startRead();
-        if (this->readComplete)
-            startWrite();
+        
+        for (int i = 0; i < 2; i++)
+        {
+            startRead();
+            if (this->readComplete)
+                startWrite();
+        }
     }
 
 public:
@@ -79,7 +83,25 @@ public:
     {
         if (!error)
         {
-            std::cout << "Write message: " << std::hex << std::uppercase << this->dataBuffer.data() << std::dec << " | Recieved length: " << length << "\n";
+            std::cout << "Write message in printable chars: ";
+            for (size_t i = 0; i < length; i++)
+            {
+                printf("%d", isprint(this->dataBuffer[i]));
+            }
+            
+            std::cout << "\nWrite message in ASCII: ";
+            for (size_t i = 0; i < length; i++)
+            {
+                printf("%s", this->dataBuffer[i]);
+            }
+
+            std::cout << "\nWrite message in hex: ";
+            for (size_t i = 0; i < length; i++)
+            {
+               std::cout << std::hex << std::uppercase << this->dataBuffer[i];            
+            }
+            
+            std::cout << "\n";
         }
         else
             std::cerr << "Handle write! | " << "Error: " << error << " | Data length: " << length << "\n";
