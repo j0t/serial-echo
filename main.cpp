@@ -21,6 +21,8 @@ private:
     boost::asio::serial_port serialPort;
     boost::array<char, BUFFER_SIZE> dataBuffer;
 
+    bool readComplete = false;
+
 public:
     SerialServer(boost::asio::io_context& io_context, SerialPortInformation& portInformation)
         : io_context(io_context)
@@ -28,22 +30,29 @@ public:
         , serialPort(io_context, portInformation.portName)
     {
         setupPort(this->serialPort, this->portInformation.baudRate);
-        startActions();
+        startRead();
+        if (this->readComplete)
+            startWrite();
     }
 
 public:
-    void startActions()
+    void startRead()
     {
         boost::asio::async_read(this->serialPort, boost::asio::buffer(this->dataBuffer, BUFFER_SIZE),
             boost::bind(&SerialServer::handleRead, this,
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
 
+        this->readComplete = true;
+    }
+
+    void startWrite()
+    {
         boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, BUFFER_SIZE),
             boost::bind(&SerialServer::handleWrite, this,
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
-}
+    }
 
     void setupPort(boost::asio::serial_port& serialPort, unsigned long baudRate)
     {
@@ -63,17 +72,17 @@ public:
             std::cout << " | Recieved length: " << length << "\n";
         }
         else
-            std::cout << "Handle read! | " << "Error: " << error << " | Data length: " << length << "\n";
+            std::cerr << "Handle read! | " << "Error: " << error << " | Data length: " << length << "\n";
     }
 
     void handleWrite(const boost::system::error_code& error, size_t length)
     {
         if (!error)
         {
-            std::cout << "Write message: " << std::hex << this->dataBuffer.data() << std::dec << " | Recieved length: " << length << "\n";
+            std::cout << "Write message: " << std::hex << std::uppercase << this->dataBuffer.data() << std::dec << " | Recieved length: " << length << "\n";
         }
-        else        
-            std::cout << "Handle write! | " << "Error: " << error << " | Data length: " << length << "\n";
+        else
+            std::cerr << "Handle write! | " << "Error: " << error << " | Data length: " << length << "\n";
     }
 };
 
