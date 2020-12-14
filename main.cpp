@@ -37,7 +37,7 @@ public:
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
 
-        if (this->dataBuffer[12] == '\0')
+        if (this->dataBuffer[11] == '\0')
         {
             boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, 12),
                 boost::bind(&SerialServer::handleWrite, this,
