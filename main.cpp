@@ -42,8 +42,6 @@ public:
             boost::bind(&SerialServer::handleRead, this,
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
-
-        this->readComplete = true;
     }
 
     void startWrite()
@@ -73,6 +71,8 @@ public:
         }
         else
             std::cerr << "Handle read! | " << "Error: " << error << " | Data length: " << length << "\n";
+
+        this->readComplete = true;
     }
 
     void handleWrite(const boost::system::error_code& error, size_t length)
