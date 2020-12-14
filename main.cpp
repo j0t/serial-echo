@@ -61,7 +61,7 @@ public:
     {
         if (!error)
         {
-            this->dataBuffer[length + 1] = '\0';
+            this->dataBuffer[length] = '\0';
             std::cout << "Read message: " << this->dataBuffer.data() << " | Recieved length: " << length << "\n";
         }
         else
