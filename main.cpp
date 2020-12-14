@@ -4,6 +4,8 @@
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 
+static const unsigned int BUFFER_SIZE = 12;
+
 struct SerialPortInformation
 {
     std::string portName;
@@ -17,7 +19,7 @@ private:
     SerialPortInformation& portInformation;
 
     boost::asio::serial_port serialPort;
-    boost::array<char, 12> dataBuffer;
+    boost::array<char, BUFFER_SIZE> dataBuffer;
 
 public:
     SerialServer(boost::asio::io_context& io_context, SerialPortInformation& portInformation)
@@ -32,14 +34,14 @@ public:
 public:
     void startActions()
     {
-        boost::asio::async_read(this->serialPort, boost::asio::buffer(this->dataBuffer, 11),
+        boost::asio::async_read(this->serialPort, boost::asio::buffer(this->dataBuffer, BUFFER_SIZE - 1),
             boost::bind(&SerialServer::handleRead, this,
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
 
-        if (this->dataBuffer[11] == '\0')
+        if (this->dataBuffer[BUFFER_SIZE - 1] == '\0')
         {
-            boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, 12),
+            boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, BUFFER_SIZE),
                 boost::bind(&SerialServer::handleWrite, this,
                 boost::asio::placeholders::error,
                 boost::asio::placeholders::bytes_transferred));
@@ -59,7 +61,7 @@ public:
     {
         if (!error)
         {
-            this->dataBuffer.data() + '\0';
+            this->dataBuffer[length + 1] = '\0';
             std::cout << "Read message: " << this->dataBuffer.data() << " | Recieved length: " << length << "\n";
         }
         else
