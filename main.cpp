@@ -30,13 +30,7 @@ public:
         , serialPort(io_context, portInformation.portName)
     {
         setupPort(this->serialPort, this->portInformation.baudRate);
-        
-        for (int i = 0; i < 2; i++)
-        {
-            startRead();
-            if (this->readComplete)
-                startWrite();
-        }
+        startRead();
     }
 
 public:
@@ -76,7 +70,7 @@ public:
         else
             std::cerr << "Handle read! | " << "Error: " << error << " | Data length: " << length << "\n";
 
-        this->readComplete = true;
+        startWrite();
     }
 
     void handleWrite(const boost::system::error_code& error, size_t length)
