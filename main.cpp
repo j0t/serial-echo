@@ -43,8 +43,8 @@ public:
 
     void startWrite(size_t length)
     {
-        this->serialPort.async_write_some(boost::asio::buffer(this->dataBuffer, length),
-            boost::bind(&SerialServer::handleRead, this,
+        boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, length),
+            boost::bind(&SerialServer::handleWrite, this,
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
     }
