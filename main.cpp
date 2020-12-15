@@ -4,7 +4,7 @@
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 
-static const unsigned int BUFFER_SIZE = 12;
+static const unsigned int BUFFER_SIZE = 1;
 
 struct SerialPortInformation
 {
@@ -70,11 +70,13 @@ public:
     {
         if (this->portInformation.debugLevel == 1)
             printInformation("Write", error, length);
+
+        startRead();
     }
 
     void printInformation(const char* messageType, const boost::system::error_code& error, size_t length)
     {
-        if (!error)
+        if (!error || length > 12)
         {
             std::cout << messageType << " message: ";
             for (size_t i = 0; i < length; i++)
@@ -85,10 +87,14 @@ public:
                     std::cout << std::hex << std::uppercase << this->dataBuffer[i] << std::dec;            
             }
 
-            std::cout << "\n";
+            std::cout << " | Message length: " << length << "\n";
         }
         else
-            std::cerr << "Handle " << messageType << "! | " << "Error: " << error << " | Data length: " << length << "\n";
+        {
+            std::cerr << "[Error]: Handle " << messageType << "! | " << "Error: " << error << 
+                " | Data length: " << length << " - Must be " << BUFFER_SIZE << " bytes!" << "\n";
+            throw error;
+        }
     }
 };
 
@@ -161,7 +167,11 @@ int main(int argc, const char* argv[])
     }
     catch(const std::exception& e)
     {
-        std::cerr << e.what() << '\n';
+        std::cerr << "[ERROR]: " << e.what() << '\n';
+    }
+    catch(const boost::system::error_code& e)
+    {
+        std::cerr << "[ERROR]: " << e << '\n';
     }
     
     return 0;
