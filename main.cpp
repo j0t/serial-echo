@@ -4,7 +4,7 @@
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 
-static const unsigned int BUFFER_SIZE = 1;
+static const unsigned int BUFFER_SIZE = 12;
 
 struct SerialPortInformation
 {
@@ -35,15 +35,15 @@ public:
 public:
     void startRead()
     {
-        boost::asio::async_read(this->serialPort, boost::asio::buffer(this->dataBuffer, BUFFER_SIZE),
+        boost::asio::async_read(this->serialPort, boost::asio::buffer(this->dataBuffer), boost::asio::transfer_at_least(BUFFER_SIZE / 2),
             boost::bind(&SerialServer::handleRead, this,
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
     }
 
-    void startWrite()
+    void startWrite(size_t length)
     {
-        boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, BUFFER_SIZE),
+        boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, length), boost::asio::transfer_at_least(BUFFER_SIZE / 2),
             boost::bind(&SerialServer::handleWrite, this,
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
@@ -63,7 +63,7 @@ public:
         if (this->portInformation.debugLevel == 1)
             printInformation("Read", error, length);
 
-        startWrite();
+        startWrite(length);
     }
 
     void handleWrite(const boost::system::error_code& error, size_t length)
@@ -76,7 +76,7 @@ public:
 
     void printInformation(const char* messageType, const boost::system::error_code& error, size_t length)
     {
-        if (!error || length > 12)
+        if (!error)
         {
             std::cout << messageType << " message: ";
             for (size_t i = 0; i < length; i++)
