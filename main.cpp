@@ -35,7 +35,7 @@ public:
 public:
     void startRead()
     {
-        boost::asio::async_read(this->serialPort, boost::asio::buffer(this->dataBuffer), boost::asio::transfer_at_least(BUFFER_SIZE / 2),
+        this->serialPort.async_read_some(boost::asio::buffer(this->dataBuffer, BUFFER_SIZE),
             boost::bind(&SerialServer::handleRead, this,
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
@@ -43,7 +43,7 @@ public:
 
     void startWrite(size_t length)
     {
-        boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, length), boost::asio::transfer_at_least(BUFFER_SIZE / 2),
+        boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, length),
             boost::bind(&SerialServer::handleWrite, this,
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred));
