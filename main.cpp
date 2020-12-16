@@ -1,7 +1,7 @@
 #include <iostream>
-#include <string>
 #include <boost/bind/bind.hpp>
 #include <boost/asio.hpp>
+#include <boost/array.hpp>
 #include <boost/program_options.hpp>
 
 static const unsigned int BUFFER_SIZE = 12;
