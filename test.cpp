@@ -23,7 +23,7 @@ private:
     boost::asio::streambuf dataBuffer;
 
 public:
-    SerialServer(boost::asio::io_context& io_context, SerialPortInformation portInformation)
+    SerialServer(boost::asio::io_context& io_context, SerialPortInformation& portInformation)
         : io_context(io_context)
         , portInformation(portInformation)
         , serialPort(io_context, portInformation.portName)
@@ -39,15 +39,13 @@ public:
         boost::asio::read_until(this->serialPort, this->dataBuffer, ' ', error);
     }
 
-    const char* getBufferData()
+    std::string getBufferData()
     {
         std::istream inputStream(&this->dataBuffer);
         std::string dataString;
         inputStream >> dataString;
 
-        const char * convertedString = dataString.c_str();
-
-        return convertedString;
+        return dataString;
     }
 
     void setupPort(boost::asio::serial_port& serialPort, unsigned long baudRate)
@@ -107,13 +105,12 @@ void Setup_SerialServer_And_Check_Equal_With_SerialServer_Output(const char* tes
 {
     SerialPortInformation portInformation;
     AddBoostProgramOptions(portInformation);
-    for (int i = 0; i < numberOfChars; ++i)
-        portInformation.sendString.push_back(testString[i]);
+    portInformation.sendString.insert(portInformation.sendString.end(), testString, testString + strlen(testString));
 
     boost::asio::io_context io_context;
     SerialServer serialServer(io_context, portInformation);
 
-    BOOST_CHECK_EQUAL(serialServer.getBufferData(), testString);
+    BOOST_CHECK_EQUAL(serialServer.getBufferData().c_str(), testString);
 }
 
 BOOST_AUTO_TEST_SUITE(test_suit)
