@@ -81,7 +81,7 @@ public:
             std::cout << messageType << " message: ";
             for (size_t i = 0; i < length; i++)
             {
-                if(!isprint(this->dataBuffer[i]))
+                if(isprint(this->dataBuffer[i]))
                     std::cout << this->dataBuffer[i];
                 else
                     std::cout << std::hex << std::uppercase << this->dataBuffer[i] << std::dec;            

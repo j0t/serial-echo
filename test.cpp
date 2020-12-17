@@ -39,13 +39,13 @@ public:
         boost::asio::read_until(this->serialPort, this->dataBuffer, ' ', error);
     }
 
-    std::string getBufferData()
+    const char* getBufferData()
     {
         std::istream inputStream(&this->dataBuffer);
-        std::string dataString;
+        char* dataString;
         inputStream >> dataString;
 
-        return dataString;
+        return (const char*)dataString;
     }
 
     void setupPort(boost::asio::serial_port& serialPort, unsigned long baudRate)
@@ -105,12 +105,12 @@ void Setup_SerialServer_And_Check_Equal_With_SerialServer_Output(const char* tes
 {
     SerialPortInformation portInformation;
     AddBoostProgramOptions(portInformation);
-    portInformation.sendString.insert(portInformation.sendString.end(), testString, testString + strlen(testString));
+    portInformation.sendString.assign(testString, testString + numberOfChars);
 
     boost::asio::io_context io_context;
     SerialServer serialServer(io_context, portInformation);
 
-    BOOST_CHECK_EQUAL(serialServer.getBufferData().c_str(), testString);
+    BOOST_CHECK_EQUAL(serialServer.getBufferData(), testString);
 }
 
 BOOST_AUTO_TEST_SUITE(test_suit)
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(test_more_than_buffer_size)
 
 BOOST_AUTO_TEST_CASE(test_non_ASCII_or_null)
 {
-    Setup_SerialServer_And_Check_Equal_With_SerialServer_Output("tēst_\0čo ", 12);
+    Setup_SerialServer_And_Check_Equal_With_SerialServer_Output("tēst_\x01čo ", 12);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
