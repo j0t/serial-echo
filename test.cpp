@@ -44,7 +44,6 @@ public:
         std::istream inputStream(&this->dataBuffer);
         char dataString[this->portInformation.sendString.size()];
         inputStream >> dataString;
-
         for(int i = 0; i < this->portInformation.sendString.size(); ++i)
             outputString[i] = dataString[i];
     }
