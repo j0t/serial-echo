@@ -1,7 +1,7 @@
 #include <iostream>
-#include <string>
 #include <boost/bind/bind.hpp>
 #include <boost/asio.hpp>
+#include <boost/array.hpp>
 #include <boost/program_options.hpp>
 
 static const unsigned int BUFFER_SIZE = 12;
@@ -81,7 +81,7 @@ public:
             std::cout << messageType << " message: ";
             for (size_t i = 0; i < length; i++)
             {
-                if(!isprint(this->dataBuffer[i]))
+                if(isprint(this->dataBuffer[i]))
                     std::cout << this->dataBuffer[i];
                 else
                     std::cout << std::hex << std::uppercase << this->dataBuffer[i] << std::dec;            
