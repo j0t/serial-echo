@@ -84,7 +84,7 @@ public:
                 if(isprint(this->dataBuffer[i]))
                     std::cout << this->dataBuffer[i];
                 else
-                    std::cout << std::hex << std::uppercase << this->dataBuffer[i] << std::dec;            
+                    std::cout << "." << std::hex << (int)this->dataBuffer[i] << ".";
             }
 
             std::cout << " | Message length: " << length << "\n";
