@@ -39,13 +39,10 @@ public:
         boost::asio::read_until(this->serialPort, this->dataBuffer, ' ', error);
     }
 
-    void getBufferData(char* outputString)
+    void getBufferData(std::vector<char>& inputVector)
     {
         std::istream inputStream(&this->dataBuffer);
-        char dataString[this->portInformation.sendString.size()];
-        inputStream >> dataString;
-        for(int i = 0; i < this->portInformation.sendString.size(); ++i)
-            outputString[i] = dataString[i];
+        inputVector.assign(std::istreambuf_iterator<char>(inputStream), std::istreambuf_iterator<char>());
     }
 
     void setupPort(boost::asio::serial_port& serialPort, unsigned long baudRate)
@@ -110,10 +107,10 @@ void Setup_SerialServer_And_Check_Equal_With_SerialServer_Output(const char* tes
     boost::asio::io_context io_context;
     SerialServer serialServer(io_context, portInformation);
 
-    char* readData;
-    serialServer.getBufferData(readData);
+    std::vector<char> bufferData;
+    serialServer.getBufferData(bufferData);
 
-    BOOST_CHECK_EQUAL((const char*)readData, testString);
+    BOOST_CHECK_EQUAL(bufferData.data(), testString);
 }
 
 BOOST_AUTO_TEST_SUITE(test_suit)
