@@ -87,7 +87,27 @@ public:
                 if(isprint(this->dataBuffer[i]))
                     std::cout << this->dataBuffer[i];
                 else
-                    std::cout << "[" << std::hex << std::uppercase << static_cast<int>(0xFF&this->dataBuffer[i]) << "]";
+                {
+                    auto ch = static_cast<int>(0xFF&this->dataBuffer[i]);
+                    switch (ch)
+                    {
+                    case 0:
+                        std::cout << "[\\0]";
+                        break;
+                    
+                    case 10:
+                        std::cout << "[\\n]";
+                        break;
+
+                    case 13:
+                        std::cout << "[\\r]";
+                        break;
+                    
+                    default:
+                        std::cout << "[" << std::hex << std::uppercase << ch << "]";
+                        break;
+                    }
+                }
             }
 
             ias.restore();

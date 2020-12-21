@@ -129,7 +129,7 @@ BOOST_AUTO_TEST_CASE(test_more_than_buffer_size)
 
 BOOST_AUTO_TEST_CASE(test_non_ASCII_or_null)
 {
-    Setup_SerialServer_And_Check_Equal_With_SerialServer_Output("tēst_\x01čo#", 12, '#');
+    Setup_SerialServer_And_Check_Equal_With_SerialServer_Output("tēst_\0čo#", 12, '#');
 }
 
 BOOST_AUTO_TEST_SUITE_END()
