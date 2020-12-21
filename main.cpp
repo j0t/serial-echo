@@ -3,6 +3,7 @@
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
 #include <boost/program_options.hpp>
+#include <boost/io/ios_state.hpp>
 
 static const unsigned int BUFFER_SIZE = 12;
 
@@ -78,14 +79,18 @@ public:
     {
         if (!error)
         {
+            boost::io::ios_all_saver  ias( std::cout );
+
             std::cout << messageType << " message: ";
             for (size_t i = 0; i < length; i++)
             {
                 if(isprint(this->dataBuffer[i]))
                     std::cout << this->dataBuffer[i];
                 else
-                    std::cout << std::hex << std::uppercase << this->dataBuffer[i] << std::dec;            
+                    std::cout << "[" << std::hex << std::uppercase << static_cast<int>(0xFF&this->dataBuffer[i]) << "]";
             }
+
+            ias.restore();
 
             std::cout << " | Message length: " << length << "\n";
         }
