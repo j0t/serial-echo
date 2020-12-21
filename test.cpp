@@ -11,6 +11,7 @@ struct SerialPortInformation
     std::string portName;
     unsigned long baudRate;
     std::vector<char> sendString;
+    char endChar;
 };
 
 class SerialServer
@@ -36,7 +37,7 @@ public:
     {
         boost::system::error_code error;
         boost::asio::write(this->serialPort, boost::asio::buffer(this->portInformation.sendString, this->portInformation.sendString.size()), error);
-        boost::asio::read_until(this->serialPort, this->dataBuffer, ' ', error);
+        boost::asio::read_until(this->serialPort, this->dataBuffer, this->portInformation.endChar, error);
     }
 
     void getBufferData(std::vector<char>& inputVector)
@@ -98,11 +99,12 @@ void AddBoostProgramOptions(SerialPortInformation& portInformation)
         }
 }
 
-void Setup_SerialServer_And_Check_Equal_With_SerialServer_Output(const char* testString, int numberOfChars)
+void Setup_SerialServer_And_Check_Equal_With_SerialServer_Output(const char* testString, int numberOfChars, char endChar)
 {
     SerialPortInformation portInformation;
     AddBoostProgramOptions(portInformation);
     portInformation.sendString.assign(testString, testString + numberOfChars);
+    portInformation.endChar = endChar;
 
     boost::asio::io_context io_context;
     SerialServer serialServer(io_context, portInformation);
@@ -117,17 +119,17 @@ BOOST_AUTO_TEST_SUITE(test_suit)
 
 BOOST_AUTO_TEST_CASE(test_less_than_buffer_size)
 {
-    Setup_SerialServer_And_Check_Equal_With_SerialServer_Output("test_conn ", 11);
+    Setup_SerialServer_And_Check_Equal_With_SerialServer_Output("test_conn!", 11, '!');
 }
 
 BOOST_AUTO_TEST_CASE(test_more_than_buffer_size)
 {
-    Setup_SerialServer_And_Check_Equal_With_SerialServer_Output("test_connection ", 17);
+    Setup_SerialServer_And_Check_Equal_With_SerialServer_Output("test_connection$", 17, '$');
 }
 
 BOOST_AUTO_TEST_CASE(test_non_ASCII_or_null)
 {
-    Setup_SerialServer_And_Check_Equal_With_SerialServer_Output("tēst_\x01čo ", 12);
+    Setup_SerialServer_And_Check_Equal_With_SerialServer_Output("tēst_\x01čo#", 12, '#');
 }
 
 BOOST_AUTO_TEST_SUITE_END()
