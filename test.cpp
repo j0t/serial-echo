@@ -6,6 +6,12 @@
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 
+void make_vector(std::vector<char>& inputVector, const char* data, std::size_t size = -1)
+{
+    std::vector<char> createVector;
+    inputVector.assign(data, data + size);
+}
+
 struct SerialPortInformation
 {
     std::string portName;
@@ -112,7 +118,10 @@ void Setup_SerialServer_And_Check_Equal_With_SerialServer_Output(const char* tes
     std::vector<char> bufferData;
     serialServer.getBufferData(bufferData);
 
-    BOOST_CHECK_EQUAL(bufferData.data(), testString);
+    std::vector<char> testDataVector;
+    make_vector(testDataVector, testString, numberOfChars);
+
+    BOOST_CHECK_EQUAL_COLLECTIONS(bufferData.begin(), bufferData.end(), testDataVector.begin(), testDataVector.end());
 }
 
 BOOST_AUTO_TEST_SUITE(test_suit)
@@ -127,9 +136,14 @@ BOOST_AUTO_TEST_CASE(test_more_than_buffer_size)
     Setup_SerialServer_And_Check_Equal_With_SerialServer_Output("test_connection$", 17, '$');
 }
 
-BOOST_AUTO_TEST_CASE(test_non_ASCII_or_null)
+BOOST_AUTO_TEST_CASE(test_null)
 {
     Setup_SerialServer_And_Check_Equal_With_SerialServer_Output("tēst_\0čo#", 12, '#');
+}
+
+BOOST_AUTO_TEST_CASE(test_non_ASCII)
+{
+    Setup_SerialServer_And_Check_Equal_With_SerialServer_Output("tēst_\x01čo@", 12, '@');
 }
 
 BOOST_AUTO_TEST_SUITE_END()
