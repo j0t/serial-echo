@@ -123,22 +123,6 @@ public:
                         std::cout << "[\\a]";
                         break;
 
-                    case 92:
-                        std::cout << "[\\]";
-                        break;
-                                        
-                    case 63:
-                        std::cout << "[\?]";
-                        break;
-                    
-                    case 39:
-                        std::cout << "[\']";
-                        break;
-
-                    case 34:
-                        std::cout << "[\"]";
-                        break;
-
                     default:
                         std::cout << "[" << std::hex << std::uppercase << ch << "]";
                         break;
