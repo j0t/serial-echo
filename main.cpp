@@ -4,6 +4,7 @@
 #include <boost/array.hpp>
 #include <boost/program_options.hpp>
 #include <boost/io/ios_state.hpp>
+#include <sys/ioctl.h>
 
 static const unsigned int BUFFER_SIZE = 12;
 
@@ -22,6 +23,8 @@ private:
 
     boost::asio::serial_port serialPort;
     boost::array<char, BUFFER_SIZE> dataBuffer;
+
+    int fd;
 
 public:
     SerialServer(boost::asio::io_context& io_context, SerialPortInformation& portInformation)
@@ -57,12 +60,41 @@ public:
         serialPort.set_option(boost::asio::serial_port_base::flow_control(boost::asio::serial_port_base::flow_control::none));
         serialPort.set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::none));
         serialPort.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
+        this->fd = serialPort.native_handle();
+        
+        setupPin(TIOCM_CTS, true);
+        setupPin(TIOCM_RTS, true);
+        setupPin(TIOCM_RI, true);
+        setupPin(TIOCM_DTR, true);
+        setupPin(TIOCM_DSR, true);
+        setupPin(TIOCM_CD, true);
+    }
+
+    void setupPin(int pinID, bool enabled)
+    {
+        if (!enabled)
+            ioctl(this->fd, TIOCMBIC, &pinID);        
+        else
+            ioctl(this->fd, TIOCMBIS, &pinID);
+    }
+
+    void getPin(int pinID)
+    {
+        ioctl(this->fd, TIOCMGET, &pinID);
+    }
+
+    void sendPin(int pinID)
+    {
+        ioctl(this->fd, TIOCMSET, &pinID);
     }
 
     void handleRead(const boost::system::error_code& error, size_t length)
     {
         if (this->portInformation.debugLevel == 1)
             printInformation("Read", error, length);
+
+        getPin(TIOCM_CTS);
+        getPin(TIOCM_RTS);
 
         startWrite(length);
     }
@@ -71,6 +103,9 @@ public:
     {
         if (this->portInformation.debugLevel == 1)
             printInformation("Write", error, length);
+
+        sendPin(TIOCM_CTS);
+        sendPin(TIOCM_RTS);
 
         startRead();
     }
