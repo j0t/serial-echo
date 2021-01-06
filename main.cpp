@@ -47,6 +47,9 @@ public:
 
     void startWrite(size_t length)
     {
+        if (!getCTS())
+            std::cerr << "Could not get CTS\n";
+
         boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, length),
             boost::bind(&SerialServer::handleWrite, this,
             boost::asio::placeholders::error,
@@ -62,39 +65,55 @@ public:
         serialPort.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
         this->fd = serialPort.native_handle();
         
-        setupPin(TIOCM_CTS, true);
-        setupPin(TIOCM_RTS, true);
-        setupPin(TIOCM_RI, true);
-        setupPin(TIOCM_DTR, true);
-        setupPin(TIOCM_DSR, true);
-        setupPin(TIOCM_CD, true);
+        if (!setRTS(false))
+            std::cerr << "Could not set RTS\n";
+        // if (!setDTR(false))
+        //     std::cerr << "Could not set DTR\n";
     }
 
-    void setupPin(int pinID, bool enabled)
+    bool setRTS(bool enabled)
     {
+        int data = TIOCM_RTS;
         if (!enabled)
-            ioctl(this->fd, TIOCMBIC, &pinID);        
+            if(ioctl(this->fd, TIOCMBIC, &data))
+                return true;
+            else
+                return false;
         else
-            ioctl(this->fd, TIOCMBIS, &pinID);
+            if(ioctl(this->fd, TIOCMBIS, &data))
+                return true;
+            else
+                return false;
     }
 
-    void getPin(int pinID)
+    bool setDTR(bool enabled)
     {
-        ioctl(this->fd, TIOCMGET, &pinID);
+        int data = TIOCM_DTR;
+        if (!enabled)
+            if(ioctl(this->fd, TIOCMBIC, &data))
+                return true;
+            else
+                return false;
+        else
+            if(ioctl(this->fd, TIOCMBIS, &data))
+                return true;
+            else
+                return false;
     }
 
-    void sendPin(int pinID)
-    {
-        ioctl(this->fd, TIOCMSET, &pinID);
+    bool getCTS()
+    {   
+        int data = TIOCM_CTS;
+        if (ioctl(this->fd, TIOCMGET, &data))
+            return true;
+        else
+            return false;
     }
 
     void handleRead(const boost::system::error_code& error, size_t length)
     {
         if (this->portInformation.debugLevel == 1)
             printInformation("Read", error, length);
-
-        getPin(TIOCM_CTS);
-        getPin(TIOCM_RTS);
 
         startWrite(length);
     }
@@ -103,9 +122,6 @@ public:
     {
         if (this->portInformation.debugLevel == 1)
             printInformation("Write", error, length);
-
-        sendPin(TIOCM_CTS);
-        sendPin(TIOCM_RTS);
 
         startRead();
     }
