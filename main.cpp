@@ -77,12 +77,12 @@ public:
             if(ioctl(this->fd, TIOCMBIC, &data))
                 std::cout << "RTS cleared!\n";
             else
-                throw std::runtime_error("RTS couldn\'t be cleared!\n");
+                throw boost::system::system_error(EXDEV, boost::system::system_category(), "RTS couldn\'t be cleared!\n");
         else
             if(ioctl(this->fd, TIOCMBIS, &data))
                 std::cout << "RTS set!\n";
             else
-                throw std::runtime_error("RTS couldn\'t be set!\n");
+                throw boost::system::system_error(EXDEV, boost::system::system_category(), "RTS couldn\'t be set!\n");
     }
 
     void setDTR(bool enabled)
@@ -93,12 +93,12 @@ public:
             if(ioctl(this->fd, TIOCMBIC, &data))
                 std::cout << "DTR cleared!\n";
             else
-                throw std::runtime_error("DTR couldn\'t be cleared!\n");
+                throw boost::system::system_error(EXDEV, boost::system::system_category(), "DTR couldn\'t be cleared!\n");
         else
             if(ioctl(this->fd, TIOCMBIS, &data))
                 std::cout << "DTR set!\n";
             else
-                throw std::runtime_error("DTR couldn\'t be set!\n");
+                throw boost::system::system_error(EXDEV, boost::system::system_category(), "DTR couldn\'t be set!\n");
     }
 
     int getCTS()
@@ -108,14 +108,11 @@ public:
         
         if (CTSValue)
         {
-            std::cout << "RTS cleared!\n";
-            return CTSValue;
+            std::cout << "Got CTS!\n";
+            return (CTSValue& TIOCM_CTS) ? 1 : 0;
         }
         else
-        {
-            throw std::runtime_error("RTS couldn\'t be cleared!\n");
-            return -1;
-        }
+            throw boost::system::system_error(EXDEV, boost::system::system_category(), "Failed to get CTS!\n");
     }
 
     void handleRead(const boost::system::error_code& error, size_t length)
@@ -269,13 +266,9 @@ int main(int argc, const char* argv[])
         std::cout << "Closing port\n";
 
     }
-    catch(const std::exception& e)
+    catch(const boost::system::system_error& e)
     {
-        std::cerr << "[ERROR]: " << e.what() << '\n';
-    }
-    catch(const boost::system::error_code& e)
-    {
-        std::cerr << "[ERROR]: " << e << '\n';
+        std::cerr << "[ERROR]: " << e.what() << ": " << e.code() << " - " << e.code().message() << '\n';
     }
     
     return 0;
