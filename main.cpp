@@ -48,8 +48,6 @@ public:
 
     void startWrite(size_t length)
     {
-        this->portInformation.CTSValue = getCTS();
-
         boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, length),
             boost::bind(&SerialServer::handleWrite, this,
             boost::asio::placeholders::error,
@@ -67,38 +65,42 @@ public:
         
         setRTS(true);
         // setDTR(true);
+
+        this->portInformation.CTSValue = getCTS();
     }
 
     void setRTS(bool enabled)
     {
         int data = TIOCM_RTS;
+        int returnCode = ioctl(this->fd, enabled ? TIOCMBIS : TIOCMBIC, &data);
         
         if (!enabled)
-            if(ioctl(this->fd, TIOCMBIC, &data))
+            if (returnCode)
                 std::cout << "RTS cleared!\n";
             else
-                throw boost::system::system_error(EXDEV, boost::system::system_category(), "RTS couldn\'t be cleared!\n");
+                throw boost::system::system_error(EXDEV, boost::system::system_category(), "RTS couldn\'t be cleared");
         else
-            if(ioctl(this->fd, TIOCMBIS, &data))
+            if (returnCode)
                 std::cout << "RTS set!\n";
             else
-                throw boost::system::system_error(EXDEV, boost::system::system_category(), "RTS couldn\'t be set!\n");
+                throw boost::system::system_error(EXDEV, boost::system::system_category(), "RTS couldn\'t be set");
     }
 
     void setDTR(bool enabled)
     {
         int data = TIOCM_DTR;
-        
+        int returnCode = ioctl(this->fd, enabled ? TIOCMBIS : TIOCMBIC, &data);
+
         if (!enabled)
-            if(ioctl(this->fd, TIOCMBIC, &data))
+            if (returnCode)
                 std::cout << "DTR cleared!\n";
             else
-                throw boost::system::system_error(EXDEV, boost::system::system_category(), "DTR couldn\'t be cleared!\n");
+                throw boost::system::system_error(EXDEV, boost::system::system_category(), "DTR couldn\'t be cleared");
         else
-            if(ioctl(this->fd, TIOCMBIS, &data))
+            if (returnCode)
                 std::cout << "DTR set!\n";
             else
-                throw boost::system::system_error(EXDEV, boost::system::system_category(), "DTR couldn\'t be set!\n");
+                throw boost::system::system_error(EXDEV, boost::system::system_category(), "DTR couldn\'t be set");
     }
 
     int getCTS()
@@ -112,7 +114,7 @@ public:
             return (CTSValue& TIOCM_CTS) ? 1 : 0;
         }
         else
-            throw boost::system::system_error(EXDEV, boost::system::system_category(), "Failed to get CTS!\n");
+            throw boost::system::system_error(EXDEV, boost::system::system_category(), "Failed to get CTS");
     }
 
     void handleRead(const boost::system::error_code& error, size_t length)
