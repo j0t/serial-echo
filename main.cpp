@@ -12,6 +12,7 @@ struct SerialPortInformation
 {
     std::string portName;
     unsigned long baudRate;
+    int CTSValue;
     unsigned int debugLevel;
 };
 
@@ -47,8 +48,7 @@ public:
 
     void startWrite(size_t length)
     {
-        if (getCTS())
-            std::cerr << "Could not get CTS\n";
+        this->portInformation.CTSValue = getCTS();
 
         boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, length),
             boost::bind(&SerialServer::handleWrite, this,
@@ -65,49 +65,57 @@ public:
         serialPort.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
         this->fd = serialPort.native_handle();
         
-        if (setRTS(false))
-            std::cerr << "Could not set RTS\n";
-        // if (!setDTR(false))
-        //     std::cerr << "Could not set DTR\n";
+        setRTS(true);
+        // setDTR(true);
     }
 
-    bool setRTS(bool enabled)
+    void setRTS(bool enabled)
     {
         int data = TIOCM_RTS;
+        
         if (!enabled)
             if(ioctl(this->fd, TIOCMBIC, &data))
-                return true;
+                std::cout << "RTS cleared!\n";
             else
-                return false;
+                throw std::runtime_error("RTS couldn\'t be cleared!\n");
         else
             if(ioctl(this->fd, TIOCMBIS, &data))
-                return true;
+                std::cout << "RTS set!\n";
             else
-                return false;
+                throw std::runtime_error("RTS couldn\'t be set!\n");
     }
 
-    bool setDTR(bool enabled)
+    void setDTR(bool enabled)
     {
         int data = TIOCM_DTR;
+        
         if (!enabled)
             if(ioctl(this->fd, TIOCMBIC, &data))
-                return true;
+                std::cout << "DTR cleared!\n";
             else
-                return false;
+                throw std::runtime_error("DTR couldn\'t be cleared!\n");
         else
             if(ioctl(this->fd, TIOCMBIS, &data))
-                return true;
+                std::cout << "DTR set!\n";
             else
-                return false;
+                throw std::runtime_error("DTR couldn\'t be set!\n");
     }
 
-    bool getCTS()
+    int getCTS()
     {   
         int data = TIOCM_CTS;
-        if (ioctl(this->fd, TIOCMGET, &data))
-            return true;
+        int CTSValue = ioctl(this->fd, TIOCMGET, &data);
+        
+        if (CTSValue)
+        {
+            std::cout << "RTS cleared!\n";
+            return CTSValue;
+        }
         else
-            return false;
+        {
+            throw std::runtime_error("RTS couldn\'t be cleared!\n");
+            return -1;
+        }
     }
 
     void handleRead(const boost::system::error_code& error, size_t length)
