@@ -47,7 +47,7 @@ public:
 
     void startWrite(size_t length)
     {
-        if (!getCTS())
+        if (getCTS())
             std::cerr << "Could not get CTS\n";
 
         boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, length),
@@ -65,7 +65,7 @@ public:
         serialPort.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
         this->fd = serialPort.native_handle();
         
-        if (!setRTS(false))
+        if (setRTS(false))
             std::cerr << "Could not set RTS\n";
         // if (!setDTR(false))
         //     std::cerr << "Could not set DTR\n";
