@@ -12,7 +12,7 @@ struct SerialPortInformation
 {
     std::string portName;
     unsigned long baudRate;
-    int CTSValue;
+    bool CTS_status;
     unsigned int debugLevel;
 };
 
@@ -58,7 +58,7 @@ public:
     {
         serialPort.set_option(boost::asio::serial_port_base::baud_rate(baudRate));
         serialPort.set_option(boost::asio::serial_port_base::character_size(8));
-        serialPort.set_option(boost::asio::serial_port_base::flow_control(boost::asio::serial_port_base::flow_control::hardware));
+        serialPort.set_option(boost::asio::serial_port_base::flow_control(boost::asio::serial_port_base::flow_control::none));
         serialPort.set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::none));
         serialPort.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
         this->fd = serialPort.native_handle();
@@ -66,10 +66,9 @@ public:
         setRTS(true);
         // setDTR(true);
 
-        this->portInformation.CTSValue = getCTS();
-
+        this->portInformation.CTS_status = getCTS();
         if (this->portInformation.debugLevel == 1)
-            std::cout << "CTS value: " << this->portInformation.CTSValue << std::endl;
+            std::cout << "CTS status: " << this->portInformation.CTS_status << std::endl;
     }
 
     void setRTS(bool enabled)
@@ -118,7 +117,7 @@ public:
         }
     }
 
-    int getCTS()
+    bool getCTS()
     {   
         int data = N_TTY;
         int returnCode = ioctl(this->fd, TIOCMGET, &data);
@@ -127,9 +126,9 @@ public:
             throw boost::system::system_error(returnCode, boost::system::system_category(), "Failed to get CTS");
         
         if (this->portInformation.debugLevel == 1)
-            std::cout << "Got CTS!\n";
-    
-        return (data& TIOCM_CTS) ? 1 : 0;
+            std::cout << "Obtained CTS!\n";
+
+        return (data& TIOCM_CTS);
     }
 
     void handleRead(const boost::system::error_code& error, size_t length)
