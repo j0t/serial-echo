@@ -13,6 +13,8 @@ struct SerialPortInformation
     std::string portName;
     unsigned long baudRate;
     bool CTS_status;
+    bool CD_status;
+    bool DSR_status;
     unsigned int debugLevel;
 };
 
@@ -40,6 +42,18 @@ public:
 public:
     void startRead()
     {
+        this->portInformation.CTS_status = getCTS();
+        if (this->portInformation.debugLevel == 1)
+            std::cout << "CTS status: " << this->portInformation.CTS_status << std::endl;
+
+        this->portInformation.DSR_status = getDSR();
+        if (this->portInformation.debugLevel == 1)
+            std::cout << "DSR status: " << this->portInformation.DSR_status << std::endl;
+
+        this->portInformation.CD_status = getCD();
+        if (this->portInformation.debugLevel == 1)
+            std::cout << "CD status: " << this->portInformation.CD_status << std::endl;
+
         this->serialPort.async_read_some(boost::asio::buffer(this->dataBuffer, BUFFER_SIZE),
             boost::bind(&SerialServer::handleRead, this,
             boost::asio::placeholders::error,
@@ -48,6 +62,9 @@ public:
 
     void startWrite(size_t length)
     {
+        this->sendRTS();
+        this->sendDTR();
+
         boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, length),
             boost::bind(&SerialServer::handleWrite, this,
             boost::asio::placeholders::error,
@@ -64,11 +81,19 @@ public:
         this->fd = serialPort.native_handle();
         
         setRTS(true);
-        // setDTR(true);
+        setDTR(true);
 
         this->portInformation.CTS_status = getCTS();
         if (this->portInformation.debugLevel == 1)
             std::cout << "CTS status: " << this->portInformation.CTS_status << std::endl;
+
+        this->portInformation.DSR_status = getDSR();
+        if (this->portInformation.debugLevel == 1)
+            std::cout << "DSR status: " << this->portInformation.DSR_status << std::endl;
+
+        this->portInformation.CD_status = getCD();
+        if (this->portInformation.debugLevel == 1)
+            std::cout << "CD status: " << this->portInformation.CD_status << std::endl;
     }
 
     void setRTS(bool enabled)
@@ -117,9 +142,33 @@ public:
         }
     }
 
+    void sendRTS()
+    {
+        int data = TIOCM_RTS;
+        int returnCode = ioctl(this->fd, TIOCMSET, &data);
+
+        if (returnCode < 0)
+            throw boost::system::system_error(returnCode, boost::system::system_category(), "Failed to send RTS");
+
+        if (this->portInformation.debugLevel == 1)
+            std::cout << "Sent to RTS!";
+    }
+
+    void sendDTR()
+    {
+        int data = TIOCM_DTR;
+        int returnCode = ioctl(this->fd, TIOCMSET, &data);
+
+        if (returnCode < 0)
+            throw boost::system::system_error(returnCode, boost::system::system_category(), "Failed to send DTR");
+
+        if (this->portInformation.debugLevel == 1)
+            std::cout << "Sent to DTR!";
+    }
+
     bool getCTS()
     {   
-        int data = N_TTY;
+        int data = 0;
         int returnCode = ioctl(this->fd, TIOCMGET, &data);
         
         if (returnCode < 0)
@@ -129,6 +178,34 @@ public:
             std::cout << "Obtained CTS!\n";
 
         return (data& TIOCM_CTS);
+    }
+
+    bool getCD()
+    {   
+        int data = 0;
+        int returnCode = ioctl(this->fd, TIOCMGET, &data);
+        
+        if (returnCode < 0)
+            throw boost::system::system_error(returnCode, boost::system::system_category(), "Failed to get CD");
+        
+        if (this->portInformation.debugLevel == 1)
+            std::cout << "Obtained CD!\n";
+
+        return (data& TIOCM_CD);
+    }
+
+    bool getDSR()
+    {   
+        int data = 0;
+        int returnCode = ioctl(this->fd, TIOCMGET, &data);
+        
+        if (returnCode < 0)
+            throw boost::system::system_error(returnCode, boost::system::system_category(), "Failed to get DSR");
+        
+        if (this->portInformation.debugLevel == 1)
+            std::cout << "Obtained DSR!\n";
+
+        return (data& TIOCM_DSR);
     }
 
     void handleRead(const boost::system::error_code& error, size_t length)
