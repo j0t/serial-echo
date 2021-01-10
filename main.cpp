@@ -12,9 +12,6 @@ struct SerialPortInformation
 {
     std::string portName;
     unsigned long baudRate;
-    bool CTS_status;
-    bool CD_status;
-    bool DSR_status;
     unsigned int debugLevel;
 };
 
@@ -28,6 +25,7 @@ private:
     boost::array<char, BUFFER_SIZE> dataBuffer;
 
     int fd;
+    bool modemStatus;
 
 public:
     SerialServer(boost::asio::io_context& io_context, SerialPortInformation& portInformation)
@@ -42,17 +40,9 @@ public:
 public:
     void startRead()
     {
-        this->portInformation.CTS_status = getCTS();
+        this->modemStatus = getModemSignals();
         if (this->portInformation.debugLevel == 1)
-            std::cout << "CTS status: " << this->portInformation.CTS_status << std::endl;
-
-        this->portInformation.DSR_status = getDSR();
-        if (this->portInformation.debugLevel == 1)
-            std::cout << "DSR status: " << this->portInformation.DSR_status << std::endl;
-
-        this->portInformation.CD_status = getCD();
-        if (this->portInformation.debugLevel == 1)
-            std::cout << "CD status: " << this->portInformation.CD_status << std::endl;
+            std::cout << "Signals status: " << this->modemStatus << std::endl;
 
         this->serialPort.async_read_some(boost::asio::buffer(this->dataBuffer, BUFFER_SIZE),
             boost::bind(&SerialServer::handleRead, this,
@@ -62,8 +52,7 @@ public:
 
     void startWrite(size_t length)
     {
-        this->sendRTS();
-        this->sendDTR();
+        this->sendRTSandDTR();
 
         boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, length),
             boost::bind(&SerialServer::handleWrite, this,
@@ -80,23 +69,15 @@ public:
         serialPort.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
         this->fd = serialPort.native_handle();
         
-        setRTS(true);
-        setDTR(true);
+        setRTSandDTR(true);
 
-        this->portInformation.CTS_status = getCTS();
+        this->modemStatus = getModemSignals();
         if (this->portInformation.debugLevel == 1)
-            std::cout << "CTS status: " << this->portInformation.CTS_status << std::endl;
+            std::cout << "Signals status: " << this->modemStatus << std::endl;
 
-        this->portInformation.DSR_status = getDSR();
-        if (this->portInformation.debugLevel == 1)
-            std::cout << "DSR status: " << this->portInformation.DSR_status << std::endl;
-
-        this->portInformation.CD_status = getCD();
-        if (this->portInformation.debugLevel == 1)
-            std::cout << "CD status: " << this->portInformation.CD_status << std::endl;
     }
 
-    void setRTS(bool enabled)
+    void setRTSandDTR(bool enabled)
     {
         int data = TIOCM_RTS;
         int returnCode = ioctl(this->fd, enabled ? TIOCMBIS : TIOCMBIC, &data);
@@ -117,12 +98,9 @@ public:
             if (this->portInformation.debugLevel == 1)
                 std::cout << "RTS set!\n";
         }
-    }
 
-    void setDTR(bool enabled)
-    {
-        int data = TIOCM_DTR;
-        int returnCode = ioctl(this->fd, enabled ? TIOCMBIS : TIOCMBIC, &data);
+        data = TIOCM_DTR;
+        returnCode = ioctl(this->fd, enabled ? TIOCMBIS : TIOCMBIC, &data);
 
         if (!enabled)
         {
@@ -142,22 +120,19 @@ public:
         }
     }
 
-    void sendRTS()
+    void sendRTSandDTR()
     {
         int data = TIOCM_RTS;
-        int returnCode = ioctl(this->fd, TIOCMSET, &data);
+        int returnCode = ioctl(this->fd, TIOCMSET, &data, TIOCM_CTS);
 
         if (returnCode < 0)
             throw boost::system::system_error(returnCode, boost::system::system_category(), "Failed to send RTS");
 
         if (this->portInformation.debugLevel == 1)
             std::cout << "Sent to RTS!";
-    }
 
-    void sendDTR()
-    {
-        int data = TIOCM_DTR;
-        int returnCode = ioctl(this->fd, TIOCMSET, &data);
+        data = TIOCM_DTR;
+        returnCode = ioctl(this->fd, TIOCMSET, &data, TIOCM_DSR|TIOCM_CD);
 
         if (returnCode < 0)
             throw boost::system::system_error(returnCode, boost::system::system_category(), "Failed to send DTR");
@@ -166,46 +141,18 @@ public:
             std::cout << "Sent to DTR!";
     }
 
-    bool getCTS()
+    bool getModemSignals()
     {   
         int data = 0;
         int returnCode = ioctl(this->fd, TIOCMGET, &data);
         
         if (returnCode < 0)
-            throw boost::system::system_error(returnCode, boost::system::system_category(), "Failed to get CTS");
+            throw boost::system::system_error(returnCode, boost::system::system_category(), "Failed to TIOCMGET");
         
         if (this->portInformation.debugLevel == 1)
-            std::cout << "Obtained CTS!\n";
+            std::cout << "Obtained modem signals!\n";
 
-        return (data& TIOCM_CTS);
-    }
-
-    bool getCD()
-    {   
-        int data = 0;
-        int returnCode = ioctl(this->fd, TIOCMGET, &data);
-        
-        if (returnCode < 0)
-            throw boost::system::system_error(returnCode, boost::system::system_category(), "Failed to get CD");
-        
-        if (this->portInformation.debugLevel == 1)
-            std::cout << "Obtained CD!\n";
-
-        return (data& TIOCM_CD);
-    }
-
-    bool getDSR()
-    {   
-        int data = 0;
-        int returnCode = ioctl(this->fd, TIOCMGET, &data);
-        
-        if (returnCode < 0)
-            throw boost::system::system_error(returnCode, boost::system::system_category(), "Failed to get DSR");
-        
-        if (this->portInformation.debugLevel == 1)
-            std::cout << "Obtained DSR!\n";
-
-        return (data& TIOCM_DSR);
+        return (data& TIOCM_CTS && data& TIOCM_CD && data& TIOCM_DSR);
     }
 
     void handleRead(const boost::system::error_code& error, size_t length)
