@@ -39,7 +39,7 @@ public:
 public:
     void startRead()
     {
-        setModemSignals(TIOCM_CTS|TIOCM_DSR|TIOCM_RI|TIOCM_CD, true);
+        getModemSignals(TIOCM_CTS|TIOCM_DSR|TIOCM_RI|TIOCM_CD);
 
         this->serialPort.async_read_some(boost::asio::buffer(this->dataBuffer, BUFFER_SIZE),
             boost::bind(&SerialServer::handleRead, this,
@@ -49,8 +49,8 @@ public:
 
     void startWrite(size_t length)
     {
-        setRTS(false);
-        setDTR(false);
+        setRTS(true);
+        setDTR(true);
 
         boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, length),
             boost::bind(&SerialServer::handleWrite, this,
@@ -70,7 +70,7 @@ public:
         setRTS(true);
         setDTR(true);
 
-        setModemSignals(TIOCM_CTS|TIOCM_DSR|TIOCM_RI|TIOCM_CD, false);
+        getModemSignals(TIOCM_CTS|TIOCM_DSR|TIOCM_RI|TIOCM_CD);
     }
 
     void setRTS(bool enabled)
@@ -119,8 +119,9 @@ public:
         }
     }
 
-    int getModemSignals(int data, int dataMask)
+    int getModemSignals(int dataMask)
     {   
+        int data = 0;
         int returnCode = ioctl(this->fd, TIOCMGET, &data);
         
         if (returnCode < 0)
@@ -129,28 +130,12 @@ public:
         if (this->portInformation.debugLevel == 1)
             std::cout << "Obtained modem signals!\n";
 
+        if (dataMask& TIOCM_CTS)
+            data |= TIOCM_DTR;
+        else
+            data &= ~TIOCM_DTR;
+
         return data& dataMask;
-    }
-
-    void setModemSignals(int dataMask, bool addData)
-    {   
-        int data = 0;
-                
-        if (getModemSignals(data, dataMask));
-        {
-            if (addData)
-                data |= dataMask;
-            else
-                data &= ~dataMask;
-        }
-
-        int returnCode = ioctl(this->fd, TIOCMSET, &data);
-        
-        if (returnCode < 0)
-            throw boost::system::system_error(returnCode, boost::system::system_category(), "Failed to TIOCMSET");
-
-        if (this->portInformation.debugLevel == 1)
-            std::cout << "Set modem signals!\n";
     }
 
     void handleRead(const boost::system::error_code& error, size_t length)
