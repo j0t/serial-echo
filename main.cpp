@@ -25,6 +25,8 @@ private:
     boost::array<char, BUFFER_SIZE> dataBuffer;
 
     int fd;
+    int modemData;
+    int modemStatus;
 
 public:
     SerialServer(boost::asio::io_context& io_context, SerialPortInformation& portInformation)
@@ -39,7 +41,12 @@ public:
 public:
     void startRead()
     {
-        getModemSignals(TIOCM_CTS|TIOCM_DSR|TIOCM_RI|TIOCM_CD);
+        this->modemStatus = getModemSignals(TIOCM_CTS|TIOCM_DSR|TIOCM_RI|TIOCM_CD);
+        if (this->portInformation.debugLevel == 1)
+            std::cout << "Modem status: " << this->modemStatus << std::endl;
+
+        setRTS(true);
+        setDTR(true);
 
         this->serialPort.async_read_some(boost::asio::buffer(this->dataBuffer, BUFFER_SIZE),
             boost::bind(&SerialServer::handleRead, this,
@@ -49,6 +56,10 @@ public:
 
     void startWrite(size_t length)
     {
+        this->modemStatus = getModemSignals(TIOCM_CTS|TIOCM_DSR|TIOCM_RI|TIOCM_CD);
+        if (this->portInformation.debugLevel == 1)
+            std::cout << "Modem status: " << this->modemStatus << std::endl;
+
         setRTS(true);
         setDTR(true);
 
@@ -67,16 +78,18 @@ public:
         serialPort.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
         this->fd = serialPort.native_handle();
         
+        this->modemStatus = getModemSignals(TIOCM_CTS|TIOCM_DSR|TIOCM_RI|TIOCM_CD);
+        if (this->portInformation.debugLevel == 1)
+            std::cout << "Modem status: " << this->modemStatus << std::endl;
+
         setRTS(true);
         setDTR(true);
-
-        getModemSignals(TIOCM_CTS|TIOCM_DSR|TIOCM_RI|TIOCM_CD);
     }
 
     void setRTS(bool enabled)
     {
-        int data = TIOCM_RTS;
-        int returnCode = ioctl(this->fd, enabled ? TIOCMBIS : TIOCMBIC, &data);
+        this->modemData = TIOCM_RTS;
+        int returnCode = ioctl(this->fd, enabled ? TIOCMBIS : TIOCMBIC, &this->modemData);
         
         if (!enabled)
         {
@@ -98,8 +111,8 @@ public:
 
     void setDTR(bool enabled)
     {
-        int data = TIOCM_DTR;
-        int returnCode = ioctl(this->fd, enabled ? TIOCMBIS : TIOCMBIC, &data);
+        this->modemData = TIOCM_DTR;
+        int returnCode = ioctl(this->fd, enabled ? TIOCMBIS : TIOCMBIC, &this->modemData);
 
         if (!enabled)
         {
@@ -121,21 +134,24 @@ public:
 
     int getModemSignals(int dataMask)
     {   
-        int data = 0;
-        int returnCode = ioctl(this->fd, TIOCMGET, &data);
+        this->modemData = 0;
+        int returnCode = ioctl(this->fd, TIOCMGET, &this->modemData);
         
         if (returnCode < 0)
             throw boost::system::system_error(returnCode, boost::system::system_category(), "Failed to TIOCMGET");
         
         if (this->portInformation.debugLevel == 1)
+        {
+            std::cout << "CTS: " << (this->modemData& TIOCM_CTS) << "\n";
             std::cout << "Obtained modem signals!\n";
+        }
 
-        if (dataMask& TIOCM_CTS)
-            data |= TIOCM_DTR;
+        if (this->modemData& TIOCM_CTS)
+            this->modemData |= TIOCM_DTR;
         else
-            data &= ~TIOCM_DTR;
+            this->modemData &= ~TIOCM_DTR;
 
-        return data& dataMask;
+        return this->modemData& dataMask;
     }
 
     void handleRead(const boost::system::error_code& error, size_t length)
@@ -216,7 +232,7 @@ public:
         else
         {
             std::cerr << "[Error]: Handle " << messageType << "! | " << "Error: " << error << 
-                " | Data length: " << length << " - Must be " << BUFFER_SIZE << " bytes!" << "\n";
+                " | this->modemData length: " << length << " - Must be " << BUFFER_SIZE << " bytes!" << "\n";
             throw error;
         }
     }
