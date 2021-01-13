@@ -25,8 +25,7 @@ private:
     boost::array<char, BUFFER_SIZE> dataBuffer;
 
     int fd;
-    int modemData;
-    int modemStatus;
+    int modemStatus = 0;
 
 public:
     SerialServer(boost::asio::io_context& io_context, SerialPortInformation& portInformation)
@@ -41,12 +40,15 @@ public:
 public:
     void startRead()
     {
-        this->modemStatus = getModemSignals(TIOCM_CTS|TIOCM_DSR|TIOCM_RI|TIOCM_CD);
-        if (this->portInformation.debugLevel == 1)
-            std::cout << "Modem status: " << this->modemStatus << std::endl;
+        if (this->modemStatus != 0)
+            setRTS(this->modemStatus& TIOCM_CTS);
+        else
+            setRTS();
 
-        setRTS(true);
-        setDTR(true);
+        this->modemStatus = getModemSignals();
+
+        if (this->modemStatus& TIOCM_CTS)
+            setDTR(this->modemStatus& TIOCM_DSR);
 
         this->serialPort.async_read_some(boost::asio::buffer(this->dataBuffer, BUFFER_SIZE),
             boost::bind(&SerialServer::handleRead, this,
@@ -56,12 +58,15 @@ public:
 
     void startWrite(size_t length)
     {
-        this->modemStatus = getModemSignals(TIOCM_CTS|TIOCM_DSR|TIOCM_RI|TIOCM_CD);
-        if (this->portInformation.debugLevel == 1)
-            std::cout << "Modem status: " << this->modemStatus << std::endl;
+        if (this->modemStatus != 0)
+            setRTS(this->modemStatus& TIOCM_CTS);
+        else
+            setRTS();
 
-        setRTS(true);
-        setDTR(true);
+        this->modemStatus = getModemSignals();
+
+        if (this->modemStatus& TIOCM_CTS)
+            setDTR(this->modemStatus& TIOCM_DSR);
 
         boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, length),
             boost::bind(&SerialServer::handleWrite, this,
@@ -77,81 +82,47 @@ public:
         serialPort.set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::none));
         serialPort.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
         this->fd = serialPort.native_handle();
-        
-        this->modemStatus = getModemSignals(TIOCM_CTS|TIOCM_DSR|TIOCM_RI|TIOCM_CD);
+    }
+
+    void setRTS(int CTSvalue = 0)
+    {
+        int modemData = TIOCM_RTS;
+        int returnCode = ioctl(this->fd, CTSvalue != 0 ? TIOCMBIC : TIOCMBIS, &modemData);
+
+        if (returnCode < 0)
+            throw boost::system::system_error(returnCode, boost::system::system_category(), "RTS couldn\'t be cleared");
+
         if (this->portInformation.debugLevel == 1)
-            std::cout << "Modem status: " << this->modemStatus << std::endl;
-
-        setRTS(true);
-        setDTR(true);
+            std::cout << "RTS cleared!\n";
     }
 
-    void setRTS(bool enabled)
+    void setDTR(int DSRvalue = 0)
     {
-        this->modemData = TIOCM_RTS;
-        int returnCode = ioctl(this->fd, enabled ? TIOCMBIS : TIOCMBIC, &this->modemData);
+        int modemData = TIOCM_DTR;
+        int returnCode = ioctl(this->fd, DSRvalue != 0 ? TIOCMBIC : TIOCMBIS, &modemData);
+
+        if (returnCode < 0)
+            throw boost::system::system_error(returnCode, boost::system::system_category(), "DTR couldn\'t be cleared");
         
-        if (!enabled)
-        {
-            if (returnCode < 0)
-                throw boost::system::system_error(returnCode, boost::system::system_category(), "RTS couldn\'t be cleared");
-
-            if (this->portInformation.debugLevel == 1)
-                std::cout << "RTS cleared!\n";
-        }
-        else
-        {
-            if (returnCode < 0)
-                throw boost::system::system_error(returnCode, boost::system::system_category(), "RTS couldn\'t be set");
-
-            if (this->portInformation.debugLevel == 1)
-                std::cout << "RTS set!\n";
-        }
+        if (this->portInformation.debugLevel == 1)
+            std::cout << "DTR cleared!\n";
     }
 
-    void setDTR(bool enabled)
-    {
-        this->modemData = TIOCM_DTR;
-        int returnCode = ioctl(this->fd, enabled ? TIOCMBIS : TIOCMBIC, &this->modemData);
-
-        if (!enabled)
-        {
-            if (returnCode < 0)
-                throw boost::system::system_error(returnCode, boost::system::system_category(), "DTR couldn\'t be cleared");
-            
-            if (this->portInformation.debugLevel == 1)
-                std::cout << "DTR cleared!\n";
-        }
-        else
-        {
-            if (returnCode < 0)
-                throw boost::system::system_error(returnCode, boost::system::system_category(), "DTR couldn\'t be set");
-            
-            if (this->portInformation.debugLevel == 1)
-                std::cout << "DTR set!\n";
-        }
-    }
-
-    int getModemSignals(int dataMask)
+    int getModemSignals(/* int dataMask = TIOCM_CTS|TIOCM_DSR|TIOCM_RI|TIOCM_CD */)
     {   
-        this->modemData = 0;
-        int returnCode = ioctl(this->fd, TIOCMGET, &this->modemData);
+        int modemData = 0;
+        int returnCode = ioctl(this->fd, TIOCMGET, &modemData);
         
         if (returnCode < 0)
             throw boost::system::system_error(returnCode, boost::system::system_category(), "Failed to TIOCMGET");
         
         if (this->portInformation.debugLevel == 1)
         {
-            std::cout << "CTS: " << (this->modemData& TIOCM_CTS) << "\n";
+            std::cout << "CTS: " << (modemData& TIOCM_CTS) << "\n";
             std::cout << "Obtained modem signals!\n";
         }
 
-        if (this->modemData& TIOCM_CTS)
-            this->modemData |= TIOCM_DTR;
-        else
-            this->modemData &= ~TIOCM_DTR;
-
-        return this->modemData& dataMask;
+        return modemData;
     }
 
     void handleRead(const boost::system::error_code& error, size_t length)
@@ -232,7 +203,7 @@ public:
         else
         {
             std::cerr << "[Error]: Handle " << messageType << "! | " << "Error: " << error << 
-                " | this->modemData length: " << length << " - Must be " << BUFFER_SIZE << " bytes!" << "\n";
+                " | modemData length: " << length << " - Must be " << BUFFER_SIZE << " bytes!" << "\n";
             throw error;
         }
     }
