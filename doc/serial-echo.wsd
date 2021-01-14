@@ -1,0 +1,25 @@
+@startuml serial-echo
+
+participant "serial-echo" as port0
+participant "microAPRO-test" as port1
+
+activate port0 #d982ff
+activate port1 #d982ff
+
+port1 o-> port0 : Change RTS pin, therefore changing the CTS status 
+port0 o-> port0 : Check if CTS has changed 
+port0 o-> port1 : If CTS changed, change RTS pin, changing the CTS status.
+port1 o-> port1 : Check if CTS has changed 
+port1 o-> port0 : Repeat 
+
+skinparam Shadowing false
+
+skinparam ParticipantBackgroundColor 000
+skinparam ParticipantFontColor fff
+skinparam ParticipantFontSize 18
+skinparam ParticipantBorderColor 000
+
+skinparam ArrowColor 9308fa
+skinparam ArrowFontColor 5100ba
+
+@enduml
