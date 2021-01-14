@@ -26,6 +26,7 @@ private:
 
     int fd;
     int modemStatus = 0;
+    int oldModemStatus = 0;
 
 public:
     SerialServer(boost::asio::io_context& io_context, SerialPortInformation& portInformation)
@@ -40,15 +41,15 @@ public:
 public:
     void startRead()
     {
-        if (this->modemStatus != 0)
-            setRTS(this->modemStatus& TIOCM_CTS);
-        else
-            setRTS();
-
         this->modemStatus = getModemSignals();
 
-        if (this->modemStatus& TIOCM_CTS)
-            setDTR(this->modemStatus& TIOCM_DSR);
+        // When recieving the CTS status, the program has to check if it doesnt match the previous state,
+        // to avoid contiuous RTS changes.
+        if (this->modemStatus != 0 && this->oldModemStatus& TIOCM_CTS != this->modemStatus& TIOCM_CTS)
+        {   
+            this->oldModemStatus = this->modemStatus;
+            setRTS(this->modemStatus& TIOCM_CTS);
+        }
 
         this->serialPort.async_read_some(boost::asio::buffer(this->dataBuffer, BUFFER_SIZE),
             boost::bind(&SerialServer::handleRead, this,
@@ -58,15 +59,15 @@ public:
 
     void startWrite(size_t length)
     {
-        if (this->modemStatus != 0)
-            setRTS(this->modemStatus& TIOCM_CTS);
-        else
-            setRTS();
-
         this->modemStatus = getModemSignals();
 
-        if (this->modemStatus& TIOCM_CTS)
-            setDTR(this->modemStatus& TIOCM_DSR);
+        // When recieving the CTS status, the program has to check if it doesnt match the previous state,
+        // to avoid contiuous RTS changes.
+        if (this->modemStatus != 0 && this->oldModemStatus& TIOCM_CTS != this->modemStatus& TIOCM_CTS)
+        {   
+            this->oldModemStatus = this->modemStatus;
+            setRTS(this->modemStatus& TIOCM_CTS);
+        }
 
         boost::asio::async_write(this->serialPort, boost::asio::buffer(this->dataBuffer, length),
             boost::bind(&SerialServer::handleWrite, this,
@@ -84,10 +85,10 @@ public:
         this->fd = serialPort.native_handle();
     }
 
-    void setRTS(int CTSvalue = 0)
+    void setRTS(int CTSvalue)
     {
         int modemData = TIOCM_RTS;
-        int returnCode = ioctl(this->fd, CTSvalue != 0 ? TIOCMBIC : TIOCMBIS, &modemData);
+        int returnCode = ioctl(this->fd, CTSvalue != 0 ? TIOCMBIS : TIOCMBIC, &modemData);
 
         if (returnCode < 0)
             throw boost::system::system_error(returnCode, boost::system::system_category(), "RTS couldn\'t be cleared");
@@ -96,10 +97,10 @@ public:
             std::cout << "RTS cleared!\n";
     }
 
-    void setDTR(int DSRvalue = 0)
+    void setDTR(int DTRvalue)
     {
         int modemData = TIOCM_DTR;
-        int returnCode = ioctl(this->fd, DSRvalue != 0 ? TIOCMBIC : TIOCMBIS, &modemData);
+        int returnCode = ioctl(this->fd, DTRvalue != 0 ? TIOCMBIS : TIOCMBIC, &modemData);
 
         if (returnCode < 0)
             throw boost::system::system_error(returnCode, boost::system::system_category(), "DTR couldn\'t be cleared");
@@ -108,8 +109,8 @@ public:
             std::cout << "DTR cleared!\n";
     }
 
-    int getModemSignals(/* int dataMask = TIOCM_CTS|TIOCM_DSR|TIOCM_RI|TIOCM_CD */)
-    {   
+    int getModemSignals()
+    {
         int modemData = 0;
         int returnCode = ioctl(this->fd, TIOCMGET, &modemData);
         
@@ -117,10 +118,7 @@ public:
             throw boost::system::system_error(returnCode, boost::system::system_category(), "Failed to TIOCMGET");
         
         if (this->portInformation.debugLevel == 1)
-        {
-            std::cout << "CTS: " << (modemData& TIOCM_CTS) << "\n";
-            std::cout << "Obtained modem signals!\n";
-        }
+            std::cout << "ModemData: " << std::hex << modemData << std::dec << "\n";
 
         return modemData;
     }
