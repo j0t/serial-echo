@@ -6,6 +6,8 @@
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 
+#include <sys/ioctl.h>
+
 void makeVector(std::vector<char> &inputVector, const char *data, std::size_t size = -1)
 {
     std::vector<char> createVector;
@@ -17,6 +19,7 @@ struct SerialPortInformation
 public:
     std::string portName;
     unsigned long baudRate;
+    unsigned int debugLevel;
 
 public:
     SerialPortInformation(int argc, char *argv[])
@@ -26,9 +29,15 @@ public:
         const char *HELP = "help";
         const char *PORT = "port";
         const char *BAUD_RATE = "baud_rate";
+        const char* DEBUG_LEVEL = "debug_level";
 
         options_description description("Options");
-        description.add_options()(HELP, "show help message")(PORT, value<std::string>(&this->portName)->default_value("/dev/pts/3"), "set serial port")(BAUD_RATE, value<unsigned long>(&this->baudRate)->default_value(9600), "set baud rate");
+        description.add_options()
+            (HELP, "show help message")
+            (PORT, value<std::string>(&this->portName)->default_value("/dev/pts/3"), "set serial port")
+            (BAUD_RATE, value<unsigned long>(&this->baudRate)->default_value(9600), "set baud rate")
+            (DEBUG_LEVEL, value<unsigned int>(&this->debugLevel)->default_value(0), "set debug level (0 - none, 1 - full)")
+        ;
 
         variables_map variableMap;
         store(parse_command_line(argc, argv, description), variableMap);
@@ -56,6 +65,15 @@ public:
         {
             std::cout << "Serial device baud rate was set to default\n";
         }
+
+        if (variableMap.count(DEBUG_LEVEL))
+        {
+            std::cout << "Debug level was set to " << variableMap[DEBUG_LEVEL].as<unsigned int>() << "\n";
+        }
+        else
+        {
+            std::cout << "Debug level was set to default\n";
+        }
     }
 };
 
@@ -67,6 +85,10 @@ private:
 
     boost::asio::serial_port serialPort;
     boost::asio::streambuf dataBuffer;
+
+    int fd;
+    int modemStatus = 0;
+    int oldModemStatus = 0;
 
 public:
     SerialServer(boost::asio::io_context &io_context, SerialPortInformation &portInformation)
@@ -104,6 +126,55 @@ public:
         serialPort.set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::none));
         serialPort.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
     }
+
+    void setRTS(int RTSvalue)
+    {
+        int modemData = TIOCM_RTS;
+        int returnCode = ioctl(this->fd, RTSvalue != 0 ? TIOCMBIS : TIOCMBIC, &modemData);
+
+        if (returnCode < 0)
+            throw boost::system::system_error(returnCode, boost::system::system_category(), "RTS couldn\'t be cleared");
+
+        if (this->portInformation.debugLevel == 1)
+            std::cout << "RTS cleared!\n";
+    }
+
+    void setDTR(int DTRvalue)
+    {
+        int modemData = TIOCM_DTR;
+        int returnCode = ioctl(this->fd, DTRvalue != 0 ? TIOCMBIS : TIOCMBIC, &modemData);
+
+        if (returnCode < 0)
+            throw boost::system::system_error(returnCode, boost::system::system_category(), "DTR couldn\'t be cleared");
+        
+        if (this->portInformation.debugLevel == 1)
+            std::cout << "DTR cleared!\n";
+    }
+
+    int getModemSignals()
+    {
+        int modemData = 0;
+        int returnCode = ioctl(this->fd, TIOCMGET, &modemData);
+        
+        if (returnCode < 0)
+            throw boost::system::system_error(returnCode, boost::system::system_category(), "Failed to TIOCMGET");
+        
+        if (this->portInformation.debugLevel == 1)
+            std::cout << "ModemData: " << std::hex << modemData << std::dec << "\n";
+
+        return modemData;
+    }
+
+    void manageRTS()
+    {
+        this->modemStatus = getModemSignals();
+        
+        if (this->modemStatus != 0 && (this->oldModemStatus& TIOCM_CTS) != (this->modemStatus& TIOCM_CTS))
+        {   
+            this->oldModemStatus = this->modemStatus;
+            setRTS(this->modemStatus& TIOCM_CTS);
+        }
+    }
 };
 
 struct TestSerialServerFixture
@@ -132,6 +203,27 @@ public:
         this->serialServer.readData(endChar, bufferData);
 
         makeVector(testDataVector, testString, numberOfChars);
+
+        BOOST_CHECK_EQUAL_COLLECTIONS(bufferData.begin(), bufferData.end(), testDataVector.begin(), testDataVector.end());
+    }
+
+    void ManageCTS()
+    {
+        std::vector<char> bufferData, sendString, testDataVector;
+
+        const char* testString = "Send RTS!";
+        int modemSignals = 0;
+
+        sendString.assign(testString, testString + sizeof(testString));
+        makeVector(testDataVector, testString, sizeof(testString));
+
+        this->serialServer.manageRTS();
+        this->serialServer.writeData(sendString);
+        modemSignals = this->serialServer.getModemSignals();
+        
+        BOOST_CHECK_BITWISE_EQUAL(modemSignals& TIOCM_CTS, 1);
+        
+        this->serialServer.readData('!', bufferData);
 
         BOOST_CHECK_EQUAL_COLLECTIONS(bufferData.begin(), bufferData.end(), testDataVector.begin(), testDataVector.end());
     }

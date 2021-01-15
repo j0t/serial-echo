@@ -1,10 +1,11 @@
 #include <iostream>
+#include <sys/ioctl.h>
+
 #include <boost/bind/bind.hpp>
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
 #include <boost/program_options.hpp>
 #include <boost/io/ios_state.hpp>
-#include <sys/ioctl.h>
 
 static const unsigned int BUFFER_SIZE = 12;
 
