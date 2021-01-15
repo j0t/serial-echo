@@ -34,9 +34,9 @@ public:
         options_description description("Options");
         description.add_options()
             (HELP, "show help message")
-            (PORT, value<std::string>(&this->portName)->default_value("/dev/pts/3"), "set serial port")
-            (BAUD_RATE, value<unsigned long>(&this->baudRate)->default_value(9600), "set baud rate")
-            (DEBUG_LEVEL, value<unsigned int>(&this->debugLevel)->default_value(0), "set debug level (0 - none, 1 - full)")
+            (PORT, value<std::string>(&this->portName)->default_value("/dev/nmp1"), "set serial port")
+            (BAUD_RATE, value<unsigned long>(&this->baudRate)->default_value(1200), "set baud rate")
+            (DEBUG_LEVEL, value<unsigned int>(&this->debugLevel)->default_value(1), "set debug level (0 - none, 1 - full)")
         ;
 
         variables_map variableMap;
@@ -125,6 +125,7 @@ public:
         serialPort.set_option(boost::asio::serial_port_base::flow_control(boost::asio::serial_port_base::flow_control::none));
         serialPort.set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::none));
         serialPort.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
+        this->fd = serialPort.native_handle();
     }
 
     void setRTS(int RTSvalue)
@@ -154,6 +155,7 @@ public:
     int getModemSignals()
     {
         int modemData = 0;
+        std::cout << "YO\n";
         int returnCode = ioctl(this->fd, TIOCMGET, &modemData);
         
         if (returnCode < 0)
@@ -221,7 +223,7 @@ public:
         this->serialServer.writeData(sendString);
         modemSignals = this->serialServer.getModemSignals();
         
-        BOOST_CHECK_BITWISE_EQUAL(modemSignals& TIOCM_CTS, 1);
+        BOOST_CHECK_EQUAL(modemSignals& TIOCM_CTS, 1);
         
         this->serialServer.readData('!', bufferData);
 
@@ -231,24 +233,30 @@ public:
 
 BOOST_FIXTURE_TEST_SUITE(test_suit, TestSerialServerFixture)
 
-BOOST_AUTO_TEST_CASE(test_less_than_buffer_size)
+// BOOST_AUTO_TEST_CASE(test_less_than_buffer_size)
+// {
+//     CompareEcho("test_conn!", 11, '!');
+// }
+
+// BOOST_AUTO_TEST_CASE(test_more_than_buffer_size)
+// {
+//     CompareEcho("test_connection$", 17, '$');
+// }
+
+// BOOST_AUTO_TEST_CASE(test_null)
+// {
+//     CompareEcho("tēst_\0čo#", 12, '#');
+// }
+
+// BOOST_AUTO_TEST_CASE(test_non_ASCII)
+// {
+//     CompareEcho("tēst_\x01čo@", 12, '@');
+// }
+
+BOOST_AUTO_TEST_CASE(test_CTS)
 {
-    CompareEcho("test_conn!", 11, '!');
+    ManageCTS();
 }
 
-BOOST_AUTO_TEST_CASE(test_more_than_buffer_size)
-{
-    CompareEcho("test_connection$", 17, '$');
-}
-
-BOOST_AUTO_TEST_CASE(test_null)
-{
-    CompareEcho("tēst_\0čo#", 12, '#');
-}
-
-BOOST_AUTO_TEST_CASE(test_non_ASCII)
-{
-    CompareEcho("tēst_\x01čo@", 12, '@');
-}
 
 BOOST_AUTO_TEST_SUITE_END()
