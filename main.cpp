@@ -79,7 +79,8 @@ public:
             throw boost::system::system_error(returnCode, boost::system::system_category(), "RTS couldn\'t be cleared");
 
         if (this->portInformation.debugLevel == 1)
-            std::cout << "RTS cleared!\n";
+            std::cout << ((RTSvalue != 0) ? "RTS cleared!\n" : "RTS cleared!\n");
+
     }
 
     void setDTR(int DTRvalue)
@@ -91,7 +92,8 @@ public:
             throw boost::system::system_error(returnCode, boost::system::system_category(), "DTR couldn\'t be cleared");
         
         if (this->portInformation.debugLevel == 1)
-            std::cout << "DTR cleared!\n";
+            std::cout << ((DTRvalue != 0) ? "DTR set!\n" : "DTR cleared!\n");
+
     }
 
     int getModemSignals()

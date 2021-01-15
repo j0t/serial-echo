@@ -137,7 +137,7 @@ public:
             throw boost::system::system_error(returnCode, boost::system::system_category(), "RTS couldn\'t be cleared");
 
         if (this->portInformation.debugLevel == 1)
-            std::cout << "RTS cleared!\n";
+            std::cout << ((RTSvalue != 0) ? "RTS cleared!\n" : "RTS cleared!\n");
     }
 
     void setDTR(int DTRvalue)
@@ -149,7 +149,7 @@ public:
             throw boost::system::system_error(returnCode, boost::system::system_category(), "DTR couldn\'t be cleared");
         
         if (this->portInformation.debugLevel == 1)
-            std::cout << "DTR cleared!\n";
+            std::cout << ((DTRvalue != 0) ? "DTR set!\n" : "DTR cleared!\n");
     }
 
     int getModemSignals()
@@ -173,7 +173,13 @@ public:
         if (this->modemStatus != 0 && (this->oldModemStatus& TIOCM_CTS) != (this->modemStatus& TIOCM_CTS))
         {   
             this->oldModemStatus = this->modemStatus;
-            setRTS(this->modemStatus& TIOCM_CTS);
+
+            if (this->oldModemStatus < 0)
+                setRTS(1);
+            else
+                setRTS(0);
+
+            // setRTS(this->modemStatus& TIOCM_CTS);
         }
     }
 };
@@ -212,11 +218,30 @@ public:
     {
         std::vector<char> bufferData, sendString, testDataVector;
 
-        const char* testString = "Send RTS!";
+        const char* testString1 = "Send RTS1!";
         int modemSignals = 0;
 
-        sendString.assign(testString, testString + 10);
-        makeVector(testDataVector, testString, 10);
+        sendString.assign(testString1, testString1 + 11);
+        makeVector(testDataVector, testString1, 11);
+
+        this->serialServer.manageRTS();
+        this->serialServer.writeData(sendString);
+        modemSignals = this->serialServer.getModemSignals();
+        
+        BOOST_CHECK_EQUAL(modemSignals & TIOCM_CTS, TIOCM_CTS);
+        BOOST_CHECK(modemSignals & TIOCM_CTS);
+        BOOST_CHECK_EQUAL(modemSignals, TIOCM_CTS);
+        
+        this->serialServer.readData('!', bufferData);
+
+        BOOST_CHECK_EQUAL_COLLECTIONS(bufferData.begin(), bufferData.end(), testDataVector.begin(), testDataVector.end());
+//////////////////
+//////////////////
+//////////////////
+        const char* testString2 = "Send RTS0!";
+
+        sendString.assign(testString2, testString2 + 11);
+        makeVector(testDataVector, testString2, 11);
 
         this->serialServer.manageRTS();
         this->serialServer.writeData(sendString);
