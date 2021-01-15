@@ -155,7 +155,6 @@ public:
     int getModemSignals()
     {
         int modemData = 0;
-        std::cout << "YO\n";
         int returnCode = ioctl(this->fd, TIOCMGET, &modemData);
         
         if (returnCode < 0)
@@ -209,21 +208,23 @@ public:
         BOOST_CHECK_EQUAL_COLLECTIONS(bufferData.begin(), bufferData.end(), testDataVector.begin(), testDataVector.end());
     }
 
-    void ManageCTS()
+    void Test_CTR_RTS_Pairing()
     {
         std::vector<char> bufferData, sendString, testDataVector;
 
         const char* testString = "Send RTS!";
         int modemSignals = 0;
 
-        sendString.assign(testString, testString + sizeof(testString));
-        makeVector(testDataVector, testString, sizeof(testString));
+        sendString.assign(testString, testString + 10);
+        makeVector(testDataVector, testString, 10);
 
         this->serialServer.manageRTS();
         this->serialServer.writeData(sendString);
         modemSignals = this->serialServer.getModemSignals();
         
-        BOOST_CHECK_EQUAL(modemSignals& TIOCM_CTS, 1);
+        BOOST_CHECK_EQUAL(modemSignals & TIOCM_CTS, TIOCM_CTS);
+        BOOST_CHECK(modemSignals & TIOCM_CTS);
+        BOOST_CHECK_EQUAL(modemSignals, TIOCM_CTS);
         
         this->serialServer.readData('!', bufferData);
 
@@ -231,32 +232,35 @@ public:
     }
 };
 
-BOOST_FIXTURE_TEST_SUITE(test_suit, TestSerialServerFixture)
+BOOST_FIXTURE_TEST_SUITE(test_data_transfer, TestSerialServerFixture)
 
-// BOOST_AUTO_TEST_CASE(test_less_than_buffer_size)
-// {
-//     CompareEcho("test_conn!", 11, '!');
-// }
+BOOST_AUTO_TEST_CASE(test_less_than_buffer_size)
+{
+    CompareEcho("test_conn!", 11, '!');
+}
 
-// BOOST_AUTO_TEST_CASE(test_more_than_buffer_size)
-// {
-//     CompareEcho("test_connection$", 17, '$');
-// }
+BOOST_AUTO_TEST_CASE(test_more_than_buffer_size)
+{
+    CompareEcho("test_connection$", 17, '$');
+}
 
-// BOOST_AUTO_TEST_CASE(test_null)
-// {
-//     CompareEcho("tēst_\0čo#", 12, '#');
-// }
+BOOST_AUTO_TEST_CASE(test_null)
+{
+    CompareEcho("tēst_\0čo#", 12, '#');
+}
 
-// BOOST_AUTO_TEST_CASE(test_non_ASCII)
-// {
-//     CompareEcho("tēst_\x01čo@", 12, '@');
-// }
+BOOST_AUTO_TEST_CASE(test_non_ASCII)
+{
+    CompareEcho("tēst_\x01čo@", 12, '@');
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_FIXTURE_TEST_SUITE(test_modem, TestSerialServerFixture)
 
 BOOST_AUTO_TEST_CASE(test_CTS)
 {
-    ManageCTS();
+    Test_CTR_RTS_Pairing();
 }
-
 
 BOOST_AUTO_TEST_SUITE_END()
