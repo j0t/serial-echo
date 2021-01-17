@@ -70,30 +70,21 @@ public:
         this->fd = serialPort.native_handle();
     }
 
-    void setRTS(int RTSvalue)
+    void setModemStatus(int signal, bool value)
     {
-        int modemData = TIOCM_RTS;
-        int returnCode = ioctl(this->fd, RTSvalue != 0 ? TIOCMBIS : TIOCMBIC, &modemData);
+        int returnCode = ioctl(this->fd, value ? TIOCMBIS : TIOCMBIC, &signal);
+
+        std::string signalType;
+        if (signal& TIOCM_RTS)
+            signalType = "RTS";
+        else
+            signalType = "DTR";
 
         if (returnCode < 0)
-            throw boost::system::system_error(returnCode, boost::system::system_category(), "RTS couldn\'t be cleared");
+            throw boost::system::system_error(returnCode, boost::system::system_category(), (signalType + " couldn\'t be set/cleared"));
 
         if (this->portInformation.debugLevel == 1)
-            std::cout << ((RTSvalue != 0) ? "RTS cleared!\n" : "RTS cleared!\n");
-
-    }
-
-    void setDTR(int DTRvalue)
-    {
-        int modemData = TIOCM_DTR;
-        int returnCode = ioctl(this->fd, DTRvalue != 0 ? TIOCMBIS : TIOCMBIC, &modemData);
-
-        if (returnCode < 0)
-            throw boost::system::system_error(returnCode, boost::system::system_category(), "DTR couldn\'t be cleared");
-        
-        if (this->portInformation.debugLevel == 1)
-            std::cout << ((DTRvalue != 0) ? "DTR set!\n" : "DTR cleared!\n");
-
+            std::cout << (value ? (signalType, " set!\n") : (signalType, "RTS cleared!\n"));
     }
 
     int getModemSignals()
@@ -117,7 +108,11 @@ public:
         if (this->modemStatus != 0 && (this->oldModemStatus& TIOCM_CTS) != (this->modemStatus& TIOCM_CTS))
         {   
             this->oldModemStatus = this->modemStatus;
-            setRTS(this->modemStatus& TIOCM_CTS);
+            
+            if (this->modemStatus& TIOCM_CTS)
+                setModemStatus(TIOCM_RTS, true);
+            else
+                setModemStatus(TIOCM_RTS, false);
         }
     }
 

@@ -128,28 +128,21 @@ public:
         this->fd = serialPort.native_handle();
     }
 
-    void setRTS(int RTSvalue)
+    void setModemStatus(int signal, bool value)
     {
-        int modemData = TIOCM_RTS;
-        int returnCode = ioctl(this->fd, RTSvalue != 0 ? TIOCMBIS : TIOCMBIC, &modemData);
+        int returnCode = ioctl(this->fd, value ? TIOCMBIS : TIOCMBIC, &signal);
+
+        std::string signalType;
+        if (signal& TIOCM_RTS)
+            signalType = "RTS";
+        else
+            signalType = "DTR";
 
         if (returnCode < 0)
-            throw boost::system::system_error(returnCode, boost::system::system_category(), "RTS couldn\'t be cleared");
+            throw boost::system::system_error(returnCode, boost::system::system_category(), (signalType + " couldn\'t be set/cleared"));
 
         if (this->portInformation.debugLevel == 1)
-            std::cout << ((RTSvalue != 0) ? "RTS cleared!\n" : "RTS cleared!\n");
-    }
-
-    void setDTR(int DTRvalue)
-    {
-        int modemData = TIOCM_DTR;
-        int returnCode = ioctl(this->fd, DTRvalue != 0 ? TIOCMBIS : TIOCMBIC, &modemData);
-
-        if (returnCode < 0)
-            throw boost::system::system_error(returnCode, boost::system::system_category(), "DTR couldn\'t be cleared");
-        
-        if (this->portInformation.debugLevel == 1)
-            std::cout << ((DTRvalue != 0) ? "DTR set!\n" : "DTR cleared!\n");
+            std::cout << (value ? (signalType, " set!\n") : (signalType, " cleared!\n"));
     }
 
     int getModemSignals()
@@ -174,12 +167,10 @@ public:
         {   
             this->oldModemStatus = this->modemStatus;
 
-            if (this->oldModemStatus < 0)
-                setRTS(1);
+            if (this->modemStatus& TIOCM_CTS)
+                setModemStatus(TIOCM_RTS, true);
             else
-                setRTS(0);
-
-            // setRTS(this->modemStatus& TIOCM_CTS);
+                setModemStatus(TIOCM_RTS, false);
         }
     }
 };
@@ -200,58 +191,39 @@ public:
 
     ~TestSerialServerFixture() = default;
 
-    void CompareEcho(const char *testString, int numberOfChars, char endChar)
+    void CompareEcho(const char *testString, char endChar)
     {
         std::vector<char> bufferData, sendString, testDataVector;
 
-        sendString.assign(testString, testString + numberOfChars);
+        unsigned int testStringLenght = strlen(testString) + 1;
+
+        sendString.assign(testString, testString + testStringLenght);
 
         this->serialServer.writeData(sendString);
         this->serialServer.readData(endChar, bufferData);
 
-        makeVector(testDataVector, testString, numberOfChars);
+        makeVector(testDataVector, testString, testStringLenght);
 
         BOOST_CHECK_EQUAL_COLLECTIONS(bufferData.begin(), bufferData.end(), testDataVector.begin(), testDataVector.end());
     }
 
-    void Test_CTR_RTS_Pairing()
+    void Test_CTS_RTS_Pairing(const char *testString, char endChar)
     {
         std::vector<char> bufferData, sendString, testDataVector;
 
-        const char* testString1 = "Send RTS1!";
         int modemSignals = 0;
+        unsigned int testStringLenght = strlen(testString) + 1;
 
-        sendString.assign(testString1, testString1 + 11);
-        makeVector(testDataVector, testString1, 11);
-
-        this->serialServer.manageRTS();
-        this->serialServer.writeData(sendString);
-        modemSignals = this->serialServer.getModemSignals();
-        
-        BOOST_CHECK_EQUAL(modemSignals & TIOCM_CTS, TIOCM_CTS);
-        BOOST_CHECK(modemSignals & TIOCM_CTS);
-        BOOST_CHECK_EQUAL(modemSignals, TIOCM_CTS);
-        
-        this->serialServer.readData('!', bufferData);
-
-        BOOST_CHECK_EQUAL_COLLECTIONS(bufferData.begin(), bufferData.end(), testDataVector.begin(), testDataVector.end());
-//////////////////
-//////////////////
-//////////////////
-        const char* testString2 = "Send RTS0!";
-
-        sendString.assign(testString2, testString2 + 11);
-        makeVector(testDataVector, testString2, 11);
+        sendString.assign(testString, testString + testStringLenght);
+        makeVector(testDataVector, testString, testStringLenght);
 
         this->serialServer.manageRTS();
         this->serialServer.writeData(sendString);
         modemSignals = this->serialServer.getModemSignals();
         
         BOOST_CHECK_EQUAL(modemSignals & TIOCM_CTS, TIOCM_CTS);
-        BOOST_CHECK(modemSignals & TIOCM_CTS);
-        BOOST_CHECK_EQUAL(modemSignals, TIOCM_CTS);
         
-        this->serialServer.readData('!', bufferData);
+        this->serialServer.readData(endChar, bufferData);
 
         BOOST_CHECK_EQUAL_COLLECTIONS(bufferData.begin(), bufferData.end(), testDataVector.begin(), testDataVector.end());
     }
@@ -261,22 +233,22 @@ BOOST_FIXTURE_TEST_SUITE(test_data_transfer, TestSerialServerFixture)
 
 BOOST_AUTO_TEST_CASE(test_less_than_buffer_size)
 {
-    CompareEcho("test_conn!", 11, '!');
+    CompareEcho("test_conn!", '!');
 }
 
 BOOST_AUTO_TEST_CASE(test_more_than_buffer_size)
 {
-    CompareEcho("test_connection$", 17, '$');
+    CompareEcho("test_connection$", '$');
 }
 
 BOOST_AUTO_TEST_CASE(test_null)
 {
-    CompareEcho("tēst_\0čo#", 12, '#');
+    CompareEcho("tēst_\0čo#", '#');
 }
 
 BOOST_AUTO_TEST_CASE(test_non_ASCII)
 {
-    CompareEcho("tēst_\x01čo@", 12, '@');
+    CompareEcho("tēst_\x01čo@", '@');
 }
 
 BOOST_AUTO_TEST_SUITE_END()
@@ -285,7 +257,7 @@ BOOST_FIXTURE_TEST_SUITE(test_modem, TestSerialServerFixture)
 
 BOOST_AUTO_TEST_CASE(test_CTS)
 {
-    Test_CTR_RTS_Pairing();
+    Test_CTS_RTS_Pairing("Send RTS1!", '!');
 }
 
 BOOST_AUTO_TEST_SUITE_END()
