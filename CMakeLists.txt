@@ -16,16 +16,20 @@ endif()
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-add_executable(${PROJECT_NAME} main.cpp)
-target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads ${Boost_LIBRARIES})
+add_subdirectory(lib)
+add_subdirectory(test)
 
-add_executable(${TEST_NAME} test.cpp)
-target_link_libraries(${TEST_NAME} PRIVATE Threads::Threads 
-    ${Boost_LIBRARIES}
-    ${Boost_FILESYSTEM_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
+target_include_directories(serial-echo-lib PRIVATE 
+    "${CMAKE_SOURCE_DIR}/lib/includes"
 )
+
+add_executable(${PROJECT_NAME} main.cpp)
+
+target_include_directories(${PROJECT_NAME} PRIVATE 
+    "${CMAKE_SOURCE_DIR}/lib/includes"
+)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads ${Boost_LIBRARIES} serial-echo-lib)
 
 enable_testing()
 add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
