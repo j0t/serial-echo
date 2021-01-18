@@ -133,7 +133,9 @@ public:
         int returnCode = ioctl(this->fd, value ? TIOCMBIS : TIOCMBIC, &signal);
 
         std::string signalType;
-        if (signal& TIOCM_RTS)
+        if ((signal & TIOCM_RTS) && (signal & TIOCM_DTR))
+            signalType = "RTS/DTS";
+        else if (signal& TIOCM_RTS)
             signalType = "RTS";
         else
             signalType = "DTR";
@@ -258,6 +260,7 @@ BOOST_FIXTURE_TEST_SUITE(test_modem, TestSerialServerFixture)
 BOOST_AUTO_TEST_CASE(test_CTS)
 {
     Test_CTS_RTS_Pairing("Send RTS1!", '!');
+    Test_CTS_RTS_Pairing("Send RTS0!", '!');
 }
 
 BOOST_AUTO_TEST_SUITE_END()
