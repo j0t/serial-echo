@@ -17,3 +17,29 @@ std::string modemStatusToString(unsigned int status)
     else
         return "NULL";
 }
+
+std::string modemDataTypesToString(int data)
+{
+    std::string returnString;
+
+    returnString = " (";
+
+    if (data & TIOCM_CTS)
+        returnString.append("CTS|");
+
+    if (data & TIOCM_DSR)
+        returnString.append("DSR|");
+
+    if (data & TIOCM_CD)
+        returnString.append("CD|");
+
+    if (data & TIOCM_RTS)
+        returnString.append("RTS|");
+
+    if (data & TIOCM_DTR)
+        returnString.append("DTR");
+
+    returnString.append(")");
+
+    return returnString;
+}

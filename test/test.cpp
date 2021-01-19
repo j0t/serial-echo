@@ -52,12 +52,20 @@ public:
         makeVector(testDataVector, testString, testStringLenght);
 
         this->serialServer.manageRTS();
+
+        sleep(2);
+
         this->serialServer.writeData(sendString);
-        modemSignals = this->serialServer.getModemSignals();
-        
-        BOOST_CHECK_EQUAL(modemSignals & TIOCM_CTS, TIOCM_CTS);
-        
+
+        sleep(2);
+
         this->serialServer.readData(endChar, bufferData);
+        
+        modemSignals = this->serialServer.getModemSignals();
+
+        sleep(2);
+
+        BOOST_CHECK_EQUAL(modemSignals & TIOCM_CTS, TIOCM_CTS);
 
         BOOST_CHECK_EQUAL_COLLECTIONS(bufferData.begin(), bufferData.end(), testDataVector.begin(), testDataVector.end());
     }
@@ -92,7 +100,14 @@ BOOST_FIXTURE_TEST_SUITE(test_modem, TestSerialServerFixture)
 BOOST_AUTO_TEST_CASE(test_CTS)
 {
     Test_CTS_RTS_Pairing("Send RTS1!", '!');
+    
+    std::cout << "Test 1 done!!\n";
+    sleep(2);
+    
     Test_CTS_RTS_Pairing("Send RTS0!", '!');
+        
+    std::cout << "Test 2 done!!\n";
+    sleep(2);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
