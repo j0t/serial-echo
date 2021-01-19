@@ -1,5 +1,9 @@
 #include "utility.h"
 
+#define countof(x) sizeof(x) / sizeof(x[0])
+#define str(X) #X
+#define ITEM(X) std::make_pair(TIOCM_##X,str(X))
+
 void makeVector(std::vector<char> &inputVector, const char *data, std::size_t size)
 {
     std::vector<char> createVector;
@@ -20,26 +24,22 @@ std::string modemStatusToString(unsigned int status)
 
 std::string modemDataTypesToString(int data)
 {
-    std::string returnString;
-
-    returnString = " (";
-
-    if (data & TIOCM_CTS)
-        returnString.append("CTS|");
-
-    if (data & TIOCM_DSR)
-        returnString.append("DSR|");
-
-    if (data & TIOCM_CD)
-        returnString.append("CD|");
-
-    if (data & TIOCM_RTS)
-        returnString.append("RTS|");
-
-    if (data & TIOCM_DTR)
-        returnString.append("DTR");
-
-    returnString.append(")");
-
-    return returnString;
+    typedef std::pair<unsigned int, const char *> pair_t;
+    const pair_t pairs[] = {
+          ITEM(DTR)
+        , ITEM(RTS)
+        , ITEM(CTS)
+        , ITEM(CAR)
+        , ITEM(DSR)
+    };
+    std::string result = "(";
+	for(size_t i = 0; i < countof(pairs); ++i) {
+        if( data & pairs[i].first ) {
+            if( result.size() > 1 )
+                result += '|';
+   		    result += pairs[i].second;
+        }
+	}
+    result += ')';
+	return result;
 }
