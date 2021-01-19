@@ -9,10 +9,7 @@ target_include_directories(test-lib PRIVATE
     "${CMAKE_SOURCE_DIR}/test/includes"
 )
 
-target_link_libraries(test-lib PRIVATE Threads::Threads 
-    ${Boost_LIBRARIES}
-    ${Boost_FILESYSTEM_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
+target_link_libraries(test-lib PRIVATE Threads::Threads
     serial-echo-lib
 )
 
@@ -24,10 +21,6 @@ target_include_directories(${TEST_NAME} PRIVATE
 )
 
 target_link_libraries(${TEST_NAME} PRIVATE Threads::Threads 
-    ${Boost_LIBRARIES}
-    ${Boost_FILESYSTEM_LIBRARY}
-    ${Boost_SYSTEM_LIBRARY}
     ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY}
     test-lib
-    serial-echo-lib
 )

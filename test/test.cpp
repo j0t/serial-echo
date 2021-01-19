@@ -5,6 +5,7 @@
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
 
+#include "Logger.h"
 #include "utility.h"
 #include "TestSerialServer.h"
 #include "SerialPortInformation.h"
@@ -21,6 +22,7 @@ public:
         : portInformation(boost::unit_test::framework::master_test_suite().argc, boost::unit_test::framework::master_test_suite().argv)
         , serialServer(this->io_context, this->portInformation)
     {
+        std::clog.rdbuf(new Log("Logger Initialization", LOG_LOCAL0));
     }
 
     ~TestSerialServerFixture() = default;
@@ -101,12 +103,12 @@ BOOST_AUTO_TEST_CASE(test_CTS)
 {
     Test_CTS_RTS_Pairing("Send RTS1!", '!');
     
-    std::cout << "Test 1 done!!\n";
+    std::clog << kLogDebug << "Test 1 done!" << std::endl;
     sleep(2);
     
     Test_CTS_RTS_Pairing("Send RTS0!", '!');
         
-    std::cout << "Test 2 done!!\n";
+    std::clog << kLogDebug << "Test 2 done!" << std::endl;
     sleep(2);
 }
 

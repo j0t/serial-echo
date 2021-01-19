@@ -49,7 +49,7 @@ void SerialServer::setModemStatus(unsigned int signal, bool value)
         throw boost::system::system_error(returnCode, boost::system::system_category(), (signalType + " couldn\'t be set/cleared"));
 
     if (this->portInformation.debugLevel == 1)
-        std::cout << (value ? (signalType + " set!\n") : (signalType + " cleared!\n"));
+        std::clog << kLogDebug << (value ? (signalType + " set!") : (signalType + " cleared!")) << std::endl;
 }
 
 int SerialServer::getModemSignals()
@@ -61,7 +61,7 @@ int SerialServer::getModemSignals()
         throw boost::system::system_error(returnCode, boost::system::system_category(), "Failed to TIOCMGET");
     
     if (this->portInformation.debugLevel == 1)
-        std::cout << "ModemData: " << std::hex << (modemData) << std::dec << modemDataTypesToString(modemData) << "\n";
+        std::clog << kLogDebug << "ModemData: " << std::hex << (modemData) << std::dec << modemDataTypesToString(modemData) << std::endl;
  
     return modemData;
 }
@@ -76,7 +76,7 @@ void SerialServer::manageRTS()
         setModemStatus(TIOCM_RTS, this->modemStatus & TIOCM_CTS);
     }
     else
-        if (this->portInformation.debugLevel == 1) std::cout << "Skipped RTS\n";
+        if (this->portInformation.debugLevel == 1) std::clog << kLogDebug << "Skipped RTS" << std::endl;
 }
 
 void SerialServer::handleRead(const boost::system::error_code& error, size_t length)

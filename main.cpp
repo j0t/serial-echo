@@ -1,9 +1,4 @@
-#include <boost/bind/bind.hpp>
-#include <boost/asio.hpp>
-#include <boost/array.hpp>
-#include <boost/program_options.hpp>
-#include <boost/io/ios_state.hpp>
-
+#include "Logger.h"
 #include "utility.h"
 #include "SerialServer.h"
 #include "SerialPortInformation.h"
@@ -11,7 +6,9 @@
 int main(int argc, char* argv[])
 {
     try
-    {  
+    {
+        std::clog.rdbuf(new Log("Logger Initialization", LOG_LOCAL0));
+
         SerialPortInformation portInformation(argc, argv);
 
         std::cout << "Opening port: " << portInformation.portName << std::endl;

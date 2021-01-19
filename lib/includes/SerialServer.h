@@ -7,6 +7,7 @@
 
 #include "SerialPortInformation.h"
 #include "utility.h"
+#include "Logger.h"
 
 static const unsigned int BUFFER_SIZE = 12;
 

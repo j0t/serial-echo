@@ -23,13 +23,15 @@ target_include_directories(serial-echo-lib PRIVATE
     "${CMAKE_SOURCE_DIR}/lib/includes"
 )
 
+target_link_libraries(serial-echo-lib PRIVATE ${Boost_LIBRARIES})
+
 add_executable(${PROJECT_NAME} main.cpp)
 
 target_include_directories(${PROJECT_NAME} PRIVATE 
     "${CMAKE_SOURCE_DIR}/lib/includes"
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads ${Boost_LIBRARIES} serial-echo-lib)
+target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads serial-echo-lib)
 
 enable_testing()
 add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
