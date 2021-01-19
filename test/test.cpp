@@ -22,7 +22,7 @@ public:
         : portInformation(boost::unit_test::framework::master_test_suite().argc, boost::unit_test::framework::master_test_suite().argv)
         , serialServer(this->io_context, this->portInformation)
     {
-        std::clog.rdbuf(new Log("Logger Initialization", LOG_LOCAL0));
+        std::clog.rdbuf(new Log("serial-echo-test", LOG_LOCAL0));
     }
 
     ~TestSerialServerFixture() = default;

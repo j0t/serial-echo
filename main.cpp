@@ -7,7 +7,7 @@ int main(int argc, char* argv[])
 {
     try
     {
-        std::clog.rdbuf(new Log("Logger Initialization", LOG_LOCAL0));
+        std::clog.rdbuf(new Log("serial-echo", LOG_LOCAL0));
 
         SerialPortInformation portInformation(argc, argv);
 
