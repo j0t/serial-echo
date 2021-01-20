@@ -55,17 +55,11 @@ public:
 
         this->serialServer.manageRTS();
 
-        sleep(2);
-
         this->serialServer.writeData(sendString);
-
-        sleep(2);
 
         this->serialServer.readData(endChar, bufferData);
         
         modemSignals = this->serialServer.getModemSignals();
-
-        sleep(2);
 
         BOOST_CHECK_EQUAL(modemSignals & TIOCM_CTS, TIOCM_CTS);
 
@@ -104,12 +98,10 @@ BOOST_AUTO_TEST_CASE(test_CTS)
     Test_CTS_RTS_Pairing("Send RTS1!", '!');
     
     std::clog << kLogDebug << "Test 1 done!" << std::endl;
-    sleep(2);
     
     Test_CTS_RTS_Pairing("Send RTS0!", '!');
         
     std::clog << kLogDebug << "Test 2 done!" << std::endl;
-    sleep(2);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

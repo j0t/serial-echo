@@ -2,6 +2,9 @@
 
 SerialPortInformation::SerialPortInformation(int argc, char *argv[])
 {
+    std::clog.rdbuf(new Log("serial-echo-test", LOG_LOCAL0));
+    std::cout.rdbuf(std::clog.rdbuf());
+
     using namespace boost::program_options;
 
     const char *HELP = "help";
@@ -52,4 +55,6 @@ SerialPortInformation::SerialPortInformation(int argc, char *argv[])
     {
         std::cout << "Debug level was set to default\n";
     }
+
+    std::cout.rdbuf(std::cout.rdbuf());
 };

@@ -8,6 +8,7 @@ int main(int argc, char* argv[])
     try
     {
         std::clog.rdbuf(new Log("serial-echo", LOG_LOCAL0));
+        std::cout.rdbuf(std::clog.rdbuf());
 
         SerialPortInformation portInformation(argc, argv);
 
@@ -24,6 +25,7 @@ int main(int argc, char* argv[])
     {
         std::cerr << "[ERROR]: " << e.what() << ": " << e.code() << " - " << e.code().message() << '\n';
     }
-    
+
+    std::cout.rdbuf(std::cout.rdbuf());
     return 0;
 }

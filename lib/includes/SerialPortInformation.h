@@ -3,6 +3,7 @@
 #include <boost/program_options.hpp>
 
 #include "utility.h"
+#include "Logger.h"
 
 struct SerialPortInformation
 {
