@@ -2,8 +2,11 @@
 
 SerialPortInformation::SerialPortInformation(int argc, char *argv[])
 {
+    std::streambuf * const coutbuf = std::cout.rdbuf();
     std::clog.rdbuf(new Log("serial-echo-test", LOG_LOCAL0));
-    std::cout.rdbuf(std::clog.rdbuf());
+    
+    teebuf tee(coutbuf, std::clog.rdbuf());
+    std::cout.rdbuf(&tee);
 
     using namespace boost::program_options;
 
@@ -26,35 +29,35 @@ SerialPortInformation::SerialPortInformation(int argc, char *argv[])
 
     if (variableMap.count(HELP))
     {
-        std::cout << description << "\n";
+        std::cout << description << std::endl;
     }
 
     if (variableMap.count(PORT))
     {
-        std::cout << "Serial port device was set to " << variableMap[PORT].as<std::string>() << "\n";
+        std::cout << "Serial port device was set to " << variableMap[PORT].as<std::string>() << std::endl;
     }
     else
     {
-        std::cout << "Serial port device was set to default\n";
+        std::cout << "Serial port device was set to default" << std::endl;
     }
 
     if (variableMap.count(BAUD_RATE))
     {
-        std::cout << "Serial port device baud rate was set to " << variableMap[BAUD_RATE].as<unsigned long>() << "\n";
+        std::cout << "Serial port device baud rate was set to " << variableMap[BAUD_RATE].as<unsigned long>() << std::endl;
     }
     else
     {
-        std::cout << "Serial device baud rate was set to default\n";
+        std::cout << "Serial device baud rate was set to default" << std::endl;
     }
 
     if (variableMap.count(DEBUG_LEVEL))
     {
-        std::cout << "Debug level was set to " << variableMap[DEBUG_LEVEL].as<unsigned int>() << "\n";
+        std::cout << "Debug level was set to " << variableMap[DEBUG_LEVEL].as<unsigned int>() << std::endl;
     }
     else
     {
         std::cout << "Debug level was set to default\n";
     }
 
-    std::cout.rdbuf(std::cout.rdbuf());
+    std::cout.rdbuf(coutbuf);
 };

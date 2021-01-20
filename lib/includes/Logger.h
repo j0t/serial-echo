@@ -4,6 +4,7 @@
 #include <syslog.h>
 #include <cstring>
 #include <ostream>
+#include "TeeBuffer.h"
 
 enum LogPriority {
     kLogEmerg   = LOG_EMERG,   // system is unusable

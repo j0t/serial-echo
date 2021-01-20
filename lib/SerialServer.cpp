@@ -72,7 +72,7 @@ void SerialServer::manageRTS()
     
     if (this->modemStatus != 0 && (this->oldModemStatus & TIOCM_CTS) != (this->modemStatus & TIOCM_CTS))
     {   
-        this->oldModemStatus = this->modemStatus;;
+        this->oldModemStatus = this->modemStatus;
         setModemStatus(TIOCM_RTS, this->modemStatus & TIOCM_CTS);
     }
     else
@@ -152,12 +152,12 @@ void SerialServer::printInformation(const char* messageType, const boost::system
 
         ias.restore();
 
-        std::cout << " | Message length: " << length << "\n";
+        std::cout << " | Message length: " << length << std::endl;
     }
     else
     {
         std::cerr << "[Error]: Handle " << messageType << "! | " << "Error: " << error << 
-            " | modemData length: " << length << " - Must be " << BUFFER_SIZE << " bytes!" << "\n";
+            " | modemData length: " << length << " - Must be " << BUFFER_SIZE << " bytes!" << std::endl;
         throw error;
     }
 }
