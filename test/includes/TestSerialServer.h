@@ -1,15 +1,9 @@
 #pragma once
 
-#include <boost/bind/bind.hpp>
-#include <boost/asio.hpp>
-#include <boost/array.hpp>
-#include <boost/io/ios_state.hpp>
-
 #include "utility.h"
-#include "SerialServer.h"
-#include "SerialPortInformation.h"
+#include "SerialServerBase.h"
 
-class TestSerialServer : public SerialServer
+class TestSerialServer : public SerialServerBase
 {
 private:
     boost::asio::streambuf dataBuffer;

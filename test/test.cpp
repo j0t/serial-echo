@@ -1,15 +1,9 @@
 #define BOOST_TEST_TOOLS_UNDER_DEBUGGER
 #include <boost/test/included/unit_test.hpp>
 #include <boost/test/parameterized_test.hpp>
-
 #include <boost/bind.hpp>
-#include <boost/array.hpp>
-#include <boost/asio.hpp>
-#include <boost/program_options.hpp>
-
-#include "utility.h"
 #include "TestSerialServer.h"
-#include "SerialPortInformation.h"
+#include "Logger.h"
 
 class TestSerialServerFixture
 {
@@ -72,16 +66,16 @@ using namespace boost::unit_test;
 
 test_suite* init_unit_test_suite(int argc, char* argv[])
 {
-    std::streambuf * const coutbuf = std::cout.rdbuf();
+    std::streambuf* const coutbuf = std::cout.rdbuf();
     std::clog.rdbuf(new Log("serial-echo-test", LOG_LOCAL0));
     
-    teebuf tee(coutbuf, std::clog.rdbuf());
-    std::cout.rdbuf(&tee);
+    teebuf* tee = new teebuf(coutbuf, std::clog.rdbuf());
+    std::cout.rdbuf(tee);
 
-    SerialPortInformation portInformation(argc, argv);
-    boost::asio::io_context io_context;
+    SerialPortInformation* portInformation = new SerialPortInformation(argc, argv);
+    boost::asio::io_context* io_context = new boost::asio::io_context;
 
-    TestSerialServerFixture testServer(io_context, portInformation);
+    TestSerialServerFixture* testServer = new TestSerialServerFixture(*io_context, *portInformation);
 
     const char* testStringsForEcho[] = {
         "test_conn!",
@@ -95,8 +89,8 @@ test_suite* init_unit_test_suite(int argc, char* argv[])
         "Send RTS0!"
     };
 
-    boost::function<void (const char*)> CompareEchoTest = bind( &TestSerialServerFixture::CompareEcho, &testServer, _1);
-    boost::function<void (const char*)> CTS_RTS_Pairing_Test = bind( &TestSerialServerFixture::Test_CTS_RTS_Pairing, &testServer, _1);
+    boost::function<void (const char*)> CompareEchoTest = bind( &TestSerialServerFixture::CompareEcho, testServer, _1);
+    boost::function<void (const char*)> CTS_RTS_Pairing_Test = bind( &TestSerialServerFixture::Test_CTS_RTS_Pairing, testServer, _1);
 
     test_suite* ts1 = BOOST_TEST_SUITE("test_data_transfer");
 
@@ -112,8 +106,6 @@ test_suite* init_unit_test_suite(int argc, char* argv[])
     framework::master_test_suite().add( ts2 );
 
     std::cout << "Tests ending" << std::endl;
-
-    // io_context.run(); 
 
     std::cout.rdbuf(coutbuf);
     return 0;

@@ -1,9 +1,8 @@
 #include "TestSerialServer.h"
 
 TestSerialServer::TestSerialServer(boost::asio::io_context &io_context, SerialPortInformation &portInformation)
-    : SerialServer(io_context, portInformation)
+    : SerialServerBase(io_context, portInformation)
 {
-    setupPort(this->serialPort, this->portInformation.baudRate);
 }
 
 void TestSerialServer::readData(char endChar, std::vector<char> &inputVector)

@@ -1,7 +1,8 @@
 add_library(
     serial-echo-lib
     SerialPortInformation.cpp
-    SerialServer.cpp
+    SerialServerBase.cpp
+    AsyncSerialServer.cpp
     utility.cpp
     Logger.cpp
 )
