@@ -19,6 +19,7 @@ public:
 
     void readData(char endChar, std::vector<char> &inputVector);
     void writeData(std::vector<char> &sendString);
+    void manageRTS() override;
 
     void getBufferData(std::vector<char> &inputVector);
 };

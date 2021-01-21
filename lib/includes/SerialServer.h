@@ -7,14 +7,12 @@
 
 #include "SerialPortInformation.h"
 #include "utility.h"
-#include "Logger.h"
 
 static const unsigned int BUFFER_SIZE = 12;
 
 class SerialServer
 {
 protected:
-    boost::asio::io_context& io_context;
     SerialPortInformation& portInformation;
 
     boost::asio::serial_port serialPort;
@@ -26,6 +24,7 @@ protected:
 
 public:
     SerialServer(boost::asio::io_context& io_context, SerialPortInformation& portInformation);
+    ~SerialServer();
 
 public:
     void startRead();
@@ -35,7 +34,7 @@ public:
 
     void setModemStatus(unsigned int signal, bool value);
     int getModemSignals();
-    void manageRTS();
+    virtual void manageRTS();
 
     void handleRead(const boost::system::error_code& error, size_t length);
     void handleWrite(const boost::system::error_code& error, size_t length);

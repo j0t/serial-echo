@@ -3,12 +3,20 @@
 // Allows to change the streambuffer in which to write in data.
 // Ex. clog -> cout or cout -> file.txt or write in both at the same time.
 
-template <typename char_type, typename traits = std::char_traits<char_type>>
-class basic_teebuf : public std::basic_streambuf<char_type, traits>
+template <typename char_type,
+          typename traits = std::char_traits<char_type> >
+class basic_teebuf:
+    public std::basic_streambuf<char_type, traits>
 {
-private:
-    std::basic_streambuf<char_type, traits> * sb1;
-    std::basic_streambuf<char_type, traits> * sb2;
+public:
+    typedef typename traits::int_type int_type;
+
+    basic_teebuf(std::basic_streambuf<char_type, traits> * sb1,
+                 std::basic_streambuf<char_type, traits> * sb2)
+      : sb1(sb1)
+      , sb2(sb2)
+    {
+    }
 
 private:    
     virtual int sync()
@@ -38,15 +46,9 @@ private:
         }
     }
 
-public:
-    typedef typename traits::int_type int_type;
-
-    basic_teebuf(std::basic_streambuf<char_type, traits> * sb1,
-                 std::basic_streambuf<char_type, traits> * sb2)
-      : sb1(sb1)
-      , sb2(sb2)
-    {
-    }
+private:
+    std::basic_streambuf<char_type, traits> * sb1;
+    std::basic_streambuf<char_type, traits> * sb2;
 };
 
 typedef basic_teebuf<char> teebuf;

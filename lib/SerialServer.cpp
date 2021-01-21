@@ -1,12 +1,15 @@
 #include "SerialServer.h"
 
 SerialServer::SerialServer(boost::asio::io_context& io_context, SerialPortInformation& portInformation)
-    : io_context(io_context)
-    , portInformation(portInformation)
+    : portInformation(portInformation)
     , serialPort(io_context, portInformation.portName)
 {
     setupPort(this->serialPort, this->portInformation.baudRate);
     startRead();
+}
+
+SerialServer::~SerialServer()
+{
 }
 
 void SerialServer::startRead()
@@ -49,7 +52,7 @@ void SerialServer::setModemStatus(unsigned int signal, bool value)
         throw boost::system::system_error(returnCode, boost::system::system_category(), (signalType + " couldn\'t be set/cleared"));
 
     if (this->portInformation.debugLevel == 1)
-        std::clog << kLogDebug << (value ? (signalType + " set!") : (signalType + " cleared!")) << std::endl;
+        std::cout << (value ? (signalType + " set!") : (signalType + " cleared!")) << std::endl;
 }
 
 int SerialServer::getModemSignals()
@@ -59,10 +62,10 @@ int SerialServer::getModemSignals()
     
     if (returnCode < 0)
         throw boost::system::system_error(returnCode, boost::system::system_category(), "Failed to TIOCMGET");
-    
+
     if (this->portInformation.debugLevel == 1)
-        std::clog << kLogDebug << "ModemData: " << std::hex << (modemData) << std::dec << modemDataTypesToString(modemData) << std::endl;
- 
+        std::cout << "ModemData: " << std::hex << (modemData) << std::dec << modemDataTypesToString(modemData) << std::endl;
+
     return modemData;
 }
 
@@ -70,13 +73,14 @@ void SerialServer::manageRTS()
 {
     this->modemStatus = getModemSignals();
     
-    if (this->modemStatus != 0 && (this->oldModemStatus & TIOCM_CTS) != (this->modemStatus & TIOCM_CTS))
+    if (this->modemStatus != 0)
     {   
         this->oldModemStatus = this->modemStatus;
         setModemStatus(TIOCM_RTS, this->modemStatus & TIOCM_CTS);
     }
     else
-        if (this->portInformation.debugLevel == 1) std::clog << kLogDebug << "Skipped RTS" << std::endl;
+        if (this->portInformation.debugLevel == 1)
+            std::cout << "Skipped RTS" << std::endl;
 }
 
 void SerialServer::handleRead(const boost::system::error_code& error, size_t length)
