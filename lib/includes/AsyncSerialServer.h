@@ -1,7 +1,7 @@
 #pragma once
 
 #include <boost/array.hpp>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <boost/io/ios_state.hpp>
 #include "utility.h"
 #include "SerialServerBase.h"

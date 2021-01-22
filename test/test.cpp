@@ -1,7 +1,7 @@
 #define BOOST_TEST_TOOLS_UNDER_DEBUGGER
 #include <boost/test/included/unit_test.hpp>
 #include <boost/test/parameterized_test.hpp>
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include "TestSerialServer.h"
 #include "Logger.h"
 
@@ -88,6 +88,8 @@ test_suite* init_unit_test_suite(int argc, char* argv[])
         "Send RTS1!",
         "Send RTS0!"
     };
+
+    using namespace boost::placeholders;
 
     boost::function<void (const char*)> CompareEchoTest = bind( &TestSerialServerFixture::CompareEcho, testServer, _1);
     boost::function<void (const char*)> CTS_RTS_Pairing_Test = bind( &TestSerialServerFixture::Test_CTS_RTS_Pairing, testServer, _1);
