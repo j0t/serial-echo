@@ -7,10 +7,6 @@ SerialServerBase::SerialServerBase(boost::asio::io_context& io_context, SerialPo
     setupPort(this->serialPort, this->portInformation.baudRate);
 }
 
-SerialServerBase::~SerialServerBase()
-{
-}
-
 void SerialServerBase::setupPort(boost::asio::serial_port& serialPort, unsigned long baudRate)
 {
     serialPort.set_option(boost::asio::serial_port_base::baud_rate(baudRate));
