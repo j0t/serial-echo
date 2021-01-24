@@ -22,6 +22,8 @@ public:
 
     void CompareEcho(const char *testString)
     {
+        std::cout << "CompareEcho test" << std::endl;
+
         std::vector<char> bufferData, sendString, testDataVector;
 
         unsigned int testStringLenght = strlen(testString) + 1;
@@ -39,6 +41,8 @@ public:
 
     void Test_CTS_RTS_Pairing(const char *testString)
     {
+        std::cout << "Test_CTS_RTS_Pairing test" << std::endl;
+
         std::vector<char> bufferData, sendString, testDataVector;
 
         int modemSignals = 0;
@@ -89,10 +93,8 @@ test_suite* init_unit_test_suite(int argc, char* argv[])
         "Send RTS0!"
     };
 
-    using namespace boost::placeholders;
-
-    boost::function<void (const char*)> CompareEchoTest = bind( &TestSerialServerFixture::CompareEcho, testServer, _1);
-    boost::function<void (const char*)> CTS_RTS_Pairing_Test = bind( &TestSerialServerFixture::Test_CTS_RTS_Pairing, testServer, _1);
+    boost::function<void (const char*)> CompareEchoTest = bind( &TestSerialServerFixture::CompareEcho, testServer, boost::placeholders::_1);
+    boost::function<void (const char*)> CTS_RTS_Pairing_Test = bind( &TestSerialServerFixture::Test_CTS_RTS_Pairing, testServer, boost::placeholders::_1);
 
     test_suite* ts1 = BOOST_TEST_SUITE("test_data_transfer");
 
@@ -106,8 +108,6 @@ test_suite* init_unit_test_suite(int argc, char* argv[])
 
     framework::master_test_suite().add( ts1 );
     framework::master_test_suite().add( ts2 );
-
-    std::cout << "Tests ending" << std::endl;
 
     std::cout.rdbuf(coutbuf);
     return 0;

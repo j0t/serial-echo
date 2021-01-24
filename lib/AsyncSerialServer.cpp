@@ -3,11 +3,16 @@
 AsyncSerialServer::AsyncSerialServer(boost::asio::io_context& io_context, SerialPortInformation& portInformation)
     : SerialServerBase(io_context, portInformation)
 {
+    if (this->portInformation.debugLevel == 1)
+        std::cout << "AsyncSerialServer created!" << std::endl;
+        
     startRead();
 }
 
 AsyncSerialServer::~AsyncSerialServer()
 {
+    if (this->portInformation.debugLevel == 1)
+        std::cout << "AsyncSerialServer destroyed!" << std::endl;
 }
 
 void AsyncSerialServer::startRead()

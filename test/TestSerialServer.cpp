@@ -3,6 +3,14 @@
 TestSerialServer::TestSerialServer(boost::asio::io_context &io_context, SerialPortInformation &portInformation)
     : SerialServerBase(io_context, portInformation)
 {
+    if (this->portInformation.debugLevel == 1)
+        std::cout << "TestSerialServer created!" << std::endl;
+}
+
+TestSerialServer::~TestSerialServer()
+{
+    if (this->portInformation.debugLevel == 1)
+        std::cout << "TestSerialServer destroyed!" << std::endl;
 }
 
 void TestSerialServer::readData(char endChar, std::vector<char> &inputVector)

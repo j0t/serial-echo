@@ -10,6 +10,7 @@ private:
 
 public:
     TestSerialServer(boost::asio::io_context &io_context, SerialPortInformation &portInformation);
+    ~TestSerialServer();
 
     void readData(char endChar, std::vector<char> &inputVector);
     void writeData(std::vector<char> &sendString);

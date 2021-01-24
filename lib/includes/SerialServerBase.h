@@ -15,7 +15,7 @@ protected:
 
 public:
     SerialServerBase(boost::asio::io_context& io_context, SerialPortInformation& portInformation);
-    virtual ~SerialServerBase() {}
+    virtual ~SerialServerBase();
 
 public:
     void setupPort(boost::asio::serial_port& serialPort, unsigned long baudRate);

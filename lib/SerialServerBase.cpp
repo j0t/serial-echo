@@ -4,7 +4,16 @@ SerialServerBase::SerialServerBase(boost::asio::io_context& io_context, SerialPo
     : portInformation(portInformation)
     , serialPort(io_context, portInformation.portName)
 {
+    if (this->portInformation.debugLevel == 1)
+        std::cout << "SerialServerBase created!" << std::endl;
+        
     setupPort(this->serialPort, this->portInformation.baudRate);
+}
+
+SerialServerBase::~SerialServerBase()
+{
+    if (this->portInformation.debugLevel == 1)
+        std::cout << "SerialServerBase destroyed!" << std::endl;
 }
 
 void SerialServerBase::setupPort(boost::asio::serial_port& serialPort, unsigned long baudRate)
