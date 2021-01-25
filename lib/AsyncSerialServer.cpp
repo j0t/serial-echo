@@ -17,8 +17,6 @@ AsyncSerialServer::~AsyncSerialServer()
 
 void AsyncSerialServer::startRead()
 {
-    manageRTS();
-
     this->serialPort.async_read_some(boost::asio::buffer(this->dataBuffer, BUFFER_SIZE),
         boost::bind(&AsyncSerialServer::handleRead, this,
         boost::asio::placeholders::error,

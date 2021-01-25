@@ -1,20 +1,15 @@
-// #define BOOST_TEST_TOOLS_UNDER_DEBUGGER
-
 #define BOOST_TEST_MODULE
-#define BOOST_TEST_NO_MAIN
-#define BOOST_TEST_ALTERNATIVE_INIT_API
 
 #include <boost/test/included/unit_test.hpp>
-#include <boost/test/parameterized_test.hpp>
-#include <boost/bind/bind.hpp>
 #include "TestSerialServer.h"
 #include "Logger.h"
 
-class TestSerialServerFixture
+struct TestSerialServerFixture
 {
 public:
-    SerialPortInformation portInformation;
     boost::asio::io_context io_context;
+
+    SerialPortInformation portInformation;
     TestSerialServer serialServer;
 
 public:
@@ -78,6 +73,25 @@ public:
     }
 };
 
+struct AllocateBuffers
+{
+    std::streambuf* const coutbuf = std::cout.rdbuf();
+    
+    AllocateBuffers()
+    {
+        std::clog.rdbuf(new Log("serial-echo-test", LOG_LOCAL0));
+        teebuf* tee = new teebuf(coutbuf, std::clog.rdbuf());
+
+        std::cout.rdbuf(tee);
+    }
+    ~AllocateBuffers()
+    {
+        std::cout.rdbuf(coutbuf);
+    }
+};
+
+BOOST_GLOBAL_FIXTURE(AllocateBuffers);
+
 BOOST_FIXTURE_TEST_SUITE(test_data_transfer, TestSerialServerFixture)
 
 BOOST_AUTO_TEST_CASE(test_less_than_buffer_size)
@@ -97,7 +111,7 @@ BOOST_AUTO_TEST_CASE(test_null)
 
 BOOST_AUTO_TEST_CASE(test_non_ASCII)
 {
-    CompareEcho("tēst_\x01čo@");
+    CompareEcho("tēst_\x01č@");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
@@ -128,4 +142,3 @@ int main(int argc, char* argv[])
 
     return boost::unit_test::unit_test_main(init_unit_test, argc, argv);
 }
-
