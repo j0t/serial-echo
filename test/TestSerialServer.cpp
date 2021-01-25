@@ -18,12 +18,17 @@ void TestSerialServer::readData(char endChar, std::vector<char> &inputVector)
     boost::system::error_code error;
     boost::asio::read_until(this->serialPort, this->dataBuffer, endChar, error);
     getBufferData(inputVector);
+
+    if (error) throw error;
 }
 
 void TestSerialServer::writeData(std::vector<char> &sendString)
 {
+   
     boost::system::error_code error;
     boost::asio::write(this->serialPort, boost::asio::buffer(sendString, sendString.size()), error);
+    
+    if (error) throw error;
 }
 
 void TestSerialServer::manageRTS()

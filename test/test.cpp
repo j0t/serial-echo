@@ -9,16 +9,22 @@ class TestSerialServerFixture
 {
 public:
     TestSerialServer serialServer;
+    unsigned int debug;
 
 public:
     TestSerialServerFixture(boost::asio::io_context& io_context, SerialPortInformation& portInformation)
         : serialServer(io_context, portInformation)
+        , debug(portInformation.debugLevel)
     {
-        if (portInformation.debugLevel == 1)
+        if (this->debug == 1)
             std::cout << "Fixture created!" << std::endl;
     }
 
-    ~TestSerialServerFixture() = default;
+    ~TestSerialServerFixture()
+    {
+        if (this->debug == 1)
+            std::cout << "Fixture destroyed!" << std::endl;
+    }
 
     void CompareEcho(const char *testString)
     {
@@ -85,7 +91,7 @@ test_suite* init_unit_test_suite(int argc, char* argv[])
         "test_conn!",
         "test_connection$",
         "tēst_\0čo#",
-        "tēst_\x01čo@"
+        "tēst_\x01č@"
     };
 
     const char* testStringsForPairing[] = {
