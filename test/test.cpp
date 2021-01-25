@@ -14,8 +14,8 @@ class TestSerialServerFixture
 {
 public:
     SerialPortInformation portInformation;
-    TestSerialServer serialServer;
     boost::asio::io_context io_context;
+    TestSerialServer serialServer;
 
 public:
     TestSerialServerFixture()
