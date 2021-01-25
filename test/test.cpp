@@ -1,4 +1,9 @@
-#define BOOST_TEST_TOOLS_UNDER_DEBUGGER
+// #define BOOST_TEST_TOOLS_UNDER_DEBUGGER
+
+#define BOOST_TEST_MODULE
+#define BOOST_TEST_NO_MAIN
+#define BOOST_TEST_ALTERNATIVE_INIT_API
+
 #include <boost/test/included/unit_test.hpp>
 #include <boost/test/parameterized_test.hpp>
 #include <boost/bind/bind.hpp>
@@ -8,21 +13,22 @@
 class TestSerialServerFixture
 {
 public:
+    SerialPortInformation portInformation;
     TestSerialServer serialServer;
-    unsigned int debug;
+    boost::asio::io_context io_context;
 
 public:
-    TestSerialServerFixture(boost::asio::io_context& io_context, SerialPortInformation& portInformation)
-        : serialServer(io_context, portInformation)
-        , debug(portInformation.debugLevel)
+    TestSerialServerFixture()
+        : portInformation(boost::unit_test::framework::master_test_suite().argc, boost::unit_test::framework::master_test_suite().argv)
+        , serialServer(this->io_context, this->portInformation)
     {
-        if (this->debug == 1)
+        if (this->portInformation.debugLevel == 1)
             std::cout << "Fixture created!" << std::endl;
     }
 
     ~TestSerialServerFixture()
     {
-        if (this->debug == 1)
+        if (this->portInformation.debugLevel == 1)
             std::cout << "Fixture destroyed!" << std::endl;
     }
 
@@ -72,49 +78,58 @@ public:
     }
 };
 
-using namespace boost::unit_test;
+BOOST_FIXTURE_TEST_SUITE(test_data_transfer, TestSerialServerFixture)
 
-test_suite* init_unit_test_suite(int argc, char* argv[])
+BOOST_AUTO_TEST_CASE(test_less_than_buffer_size)
 {
-    std::streambuf* const coutbuf = std::cout.rdbuf();
-    std::clog.rdbuf(new Log("serial-echo-test", LOG_LOCAL0));
+    CompareEcho("test_conn!");
+}
+
+BOOST_AUTO_TEST_CASE(test_more_than_buffer_size)
+{
+    CompareEcho("test_connection$");
+}
+
+BOOST_AUTO_TEST_CASE(test_null)
+{
+    CompareEcho("tēst_\0čo#");
+}
+
+BOOST_AUTO_TEST_CASE(test_non_ASCII)
+{
+    CompareEcho("tēst_\x01čo@");
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_FIXTURE_TEST_SUITE(test_modem, TestSerialServerFixture)
+
+BOOST_AUTO_TEST_CASE(test_CTS)
+{
+    Test_CTS_RTS_Pairing("Send RTS1!");
+    std::cout << "Test 1 done!" << std::endl;
     
-    teebuf* tee = new teebuf(coutbuf, std::clog.rdbuf());
-    std::cout.rdbuf(tee);
+    Test_CTS_RTS_Pairing("Send RTS0!");
+    std::cout << "Test 2 done!" << std::endl;
+}
 
-    SerialPortInformation* portInformation = new SerialPortInformation(argc, argv);
-    boost::asio::io_context* io_context = new boost::asio::io_context;
+BOOST_AUTO_TEST_SUITE_END()
 
-    TestSerialServerFixture* testServer = new TestSerialServerFixture(*io_context, *portInformation);
+void make_use_of(char**)
+{
+  std::cout << "Using custom entry point..." << std::endl;
+}
 
-    const char* testStringsForEcho[] = {
-        "test_conn!",
-        "test_connection$",
-        "tēst_\0čo#",
-        "tēst_\x01č@"
-    };
+int main(int argc, char* argv[], char* envp[])
+{
+    std::streambuf * const coutbuf = std::cout.rdbuf();
+    std::clog.rdbuf(new Log("serial-echo-test", LOG_LOCAL0));
 
-    const char* testStringsForPairing[] = {
-        "Send RTS1!",
-        "Send RTS0!"
-    };
+    teebuf tee(coutbuf, std::clog.rdbuf());
+    std::cout.rdbuf(&tee);
 
-    boost::function<void (const char*)> CompareEchoTest = bind( &TestSerialServerFixture::CompareEcho, testServer, boost::placeholders::_1);
-    boost::function<void (const char*)> CTS_RTS_Pairing_Test = bind( &TestSerialServerFixture::Test_CTS_RTS_Pairing, testServer, boost::placeholders::_1);
-
-    test_suite* ts1 = BOOST_TEST_SUITE("test_data_transfer");
-
-    ts1->add(BOOST_PARAM_TEST_CASE( CompareEchoTest, testStringsForEcho, 
-        testStringsForEcho + sizeof(testStringsForEcho) / sizeof(testStringsForEcho[0]) ));
-
-    test_suite* ts2 = BOOST_TEST_SUITE("test_modem");
-  
-    ts2->add(BOOST_PARAM_TEST_CASE( CTS_RTS_Pairing_Test, testStringsForPairing, 
-        testStringsForPairing + sizeof(testStringsForPairing) / sizeof(testStringsForPairing[0]) ));
-
-    framework::master_test_suite().add( ts1 );
-    framework::master_test_suite().add( ts2 );
+    make_use_of(envp);
 
     std::cout.rdbuf(coutbuf);
-    return 0;
+    return boost::unit_test::unit_test_main(init_unit_test, argc, argv);
 }
