@@ -1,8 +1,6 @@
 #define BOOST_TEST_MODULE
 
 #include <boost/test/included/unit_test.hpp>
-#include <boost/test/parameterized_test.hpp>
-#include <boost/bind/bind.hpp>
 #include "TestSerialServer.h"
 #include "Logger.h"
 
