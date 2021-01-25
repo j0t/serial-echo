@@ -3,11 +3,14 @@
 
 int main(int argc, char* argv[])
 {
-    std::streambuf * const coutbuf = std::cout.rdbuf();
-    std::clog.rdbuf(new Log("serial-echo", LOG_LOCAL0));
-    
-    teebuf tee(coutbuf, std::clog.rdbuf());
-    std::cout.rdbuf(&tee);
+    Log syslog("serial-echo", LOG_LOCAL0);
+
+    // attach std::clog to syslog
+    Attach_rdbuf attach( std::clog, &syslog );
+
+    // output to clog will appear in syslog
+    // output to cout will appear in stdout and syslog
+    Tee tee( std::cout, std::clog );
 
     try
     {
@@ -26,7 +29,5 @@ int main(int argc, char* argv[])
     {
         std::cerr << "[ERROR]: " << e.what() << ": " << e.code() << " - " << e.code().message() << std::endl;
     }
-
-    std::cout.rdbuf(coutbuf);
     return 0;
 }

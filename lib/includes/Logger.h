@@ -34,3 +34,34 @@ private:
     int priority_;
     char ident_[50];
 };
+
+class Attach_rdbuf
+{
+    std::ostream & stream_;
+    std::streambuf * const old_sb_;
+public:
+    Attach_rdbuf( std::ostream & stream, std::streambuf * new_sb )
+        : stream_( stream )
+        , old_sb_( stream.rdbuf() )
+    {
+       stream.rdbuf( new_sb );
+    }
+
+   ~Attach_rdbuf()
+    {
+       stream_.rdbuf( old_sb_ );
+    }
+};
+
+class Tee
+{
+    teebuf tee_impl;
+    Attach_rdbuf attach;
+public:
+    Tee( std::ostream & stream1, std::ostream & stream2 )
+        : tee_impl( stream1.rdbuf(), stream2.rdbuf() )
+        , attach( stream1, &tee_impl )
+    {
+    }
+};
+

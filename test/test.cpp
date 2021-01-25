@@ -115,21 +115,17 @@ BOOST_AUTO_TEST_CASE(test_CTS)
 
 BOOST_AUTO_TEST_SUITE_END()
 
-void make_use_of(char**)
+int main(int argc, char* argv[])
 {
-  std::cout << "Using custom entry point..." << std::endl;
-}
+    Log syslog("serial-echo-test", LOG_LOCAL0);
 
-int main(int argc, char* argv[], char* envp[])
-{
-    std::streambuf * const coutbuf = std::cout.rdbuf();
-    std::clog.rdbuf(new Log("serial-echo-test", LOG_LOCAL0));
+    // attach std::clog to syslog
+    Attach_rdbuf attach( std::clog, &syslog );
 
-    teebuf tee(coutbuf, std::clog.rdbuf());
-    std::cout.rdbuf(&tee);
+    // output to clog will appear in syslog
+    // output to cout will appear in stdout and syslog
+    Tee tee( std::cout, std::clog );
 
-    make_use_of(envp);
-
-    std::cout.rdbuf(coutbuf);
     return boost::unit_test::unit_test_main(init_unit_test, argc, argv);
 }
+
