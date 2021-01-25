@@ -95,8 +95,8 @@ test_suite* init_unit_test_suite(int argc, char* argv[])
     };
 
     const char* testStringsForPairing[] = {
-        "Send RTS1!",
-        "Send RTS0!"
+        "RS1!",
+        "RS0!"
     };
 
     boost::function<void (const char*)> CompareEchoTest = bind( &TestSerialServerFixture::CompareEcho, testServer, boost::placeholders::_1);
